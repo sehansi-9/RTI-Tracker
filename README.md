@@ -3,24 +3,24 @@
 ``` mermaid
 flowchart LR
     %% Left pipeline
-    A(Sheet) -->|convert_to| B(CSV)
-    B -->|raw data| C(RTI CLI)
+    Sheet -->|convert_to| CSV
+    CSV -->|raw data| RTICLI("RTI CLI")
 
     %% OpenGIN stacked vertically
     subgraph OpenGIN
         style OpenGIN stroke-dasharray: 5 5
-        D(Ingestion API)
-        E(Read API)
+        IngestionAPI("Ingestion API")
+        ReadAPI("Read API")
     end
 
     %% RTI App stacked vertically
     subgraph RTIApp
         style RTIApp stroke-dasharray: 5 5
-        C
-        F(React APP)
+        RTICLI
+        ReactApp("React APP")
     end
 
     %% Flows with slight offset to avoid crossing
-    C -->|data| D
-    E -->|data| F
+    RTICLI -->|data| IngestionAPI
+    ReadAPI -->|data| ReactApp
 ```
