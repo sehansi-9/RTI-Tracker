@@ -19,7 +19,7 @@ type Client struct {
 func customRetryCheck(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	if resp != nil {
 		switch resp.StatusCode {
-		case http.StatusBadRequest, http.StatusNotFound:
+		case http.StatusBadRequest, http.StatusNotFound, http.StatusConflict:
 			return false, nil
 		}
 	}

@@ -34,7 +34,9 @@ func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity
 	}
 
 	// 1. Insert the RTI Entity to Graph
-	id := uuid.New()
+	// Create a deterministic UUID so rerunning the script on the same data doesn't duplicate nodes
+	hashInput := fmt.Sprintf("%s_%s", entity.Created, entity.Index)
+	id := uuid.NewMD5(uuid.NameSpaceOID, []byte(hashInput))
 	rtiId := "rti_" + id.String()
 
 	// TRI payload

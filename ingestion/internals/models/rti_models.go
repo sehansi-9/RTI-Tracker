@@ -12,6 +12,7 @@ type RTIRequest struct {
 	ReceiverInstitution string `json:"receiver_institution"`
 	ReceiverPosition    string `json:"receiver_position"`
 	Created             string `json:"created"`
+	Index               string `json:"index"`
 }
 
 func (r *RTIRequest) Validate() error {

@@ -68,6 +68,7 @@ func main() {
 
 			// access the date from the folder structure
 			date := splittedDir[len(splittedDir)-2]
+			index := splittedDir[len(splittedDir)-1]
 			dateISO, err := utils.DateToISO(date)
 
 			if err != nil {
@@ -121,6 +122,7 @@ func main() {
 						ReceiverInstitution: receiverInstitution,
 						ReceiverPosition:    receiverPosition,
 						Created:             dateISO,
+						Index:               index,
 					}
 
 					_, err = s.ProcessRTIEntity(entity)
