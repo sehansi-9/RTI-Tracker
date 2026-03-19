@@ -64,14 +64,15 @@ func main() {
 
 			fileName := filepath.Base(path)
 			fileDir := filepath.Dir(path)
-			splittedDir := strings.Split(fileDir, "/")
+			splittedDir := strings.Split(fileDir, string(filepath.Separator))
 
 			// access the date from the folder structure
 			date := splittedDir[len(splittedDir)-2]
 			dateISO, err := utils.DateToISO(date)
 
 			if err != nil {
-				fmt.Errorf("failed to parse date %w", err)
+				log.Printf("failed to parse date %v", err)
+				return nil
 			}
 
 			if fileName == "status.csv" {
@@ -81,8 +82,11 @@ func main() {
 				// open the file
 				f, err := os.Open(path)
 				if err != nil {
-					fmt.Printf("Failed to open file: %s", err)
+					log.Printf("Failed to open file: %s , %v", path, err)
+					return nil
 				}
+
+				defer f.Close()
 
 				r := csv.NewReader(f)
 

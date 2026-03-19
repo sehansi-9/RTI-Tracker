@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -52,7 +53,7 @@ func (c *IngestionService) CreateEntity(entity *models.Entity) (*models.Entity, 
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	fmt.Print(createdEntity)
+	log.Printf("[Ingestion]: Entity Created %+v", createdEntity)
 
 	return &createdEntity, nil
 }

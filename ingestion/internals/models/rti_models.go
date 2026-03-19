@@ -15,17 +15,34 @@ type RTIRequest struct {
 }
 
 func (r *RTIRequest) Validate() error {
+
+	// validate title
 	if strings.TrimSpace(r.Title) == "" {
 		return fmt.Errorf("RTI request title cannot be empty")
-	} else if strings.TrimSpace(r.Content) == "" {
+	}
+
+	// validate content
+	if strings.TrimSpace(r.Content) == "" {
 		return fmt.Errorf("RTI request content cannot be empty")
-	} else if strings.TrimSpace(r.Sender) == "" {
+	}
+
+	// validate sender
+	if strings.TrimSpace(r.Sender) == "" {
 		return fmt.Errorf("RTI request sender cannot be empty")
-	} else if strings.TrimSpace(r.ReceiverInstitution) == "" {
+	}
+
+	// validate receiver institution
+	if strings.TrimSpace(r.ReceiverInstitution) == "" {
 		return fmt.Errorf("RTI request receiver institution cannot be empty")
-	} else if strings.TrimSpace(r.ReceiverPosition) == "" {
+	}
+
+	// validate receiver position
+	if strings.TrimSpace(r.ReceiverPosition) == "" {
 		return fmt.Errorf("RTI request receiver position cannot be empty")
-	} else if strings.TrimSpace(r.Created) == "" {
+	}
+
+	// validate created
+	if strings.TrimSpace(r.Created) == "" {
 		return fmt.Errorf("RTI request created cannot be empty")
 	}
 

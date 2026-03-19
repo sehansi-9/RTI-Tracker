@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -69,7 +68,7 @@ func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity
 
 	searchEntities, err := s.readClient.SearchEntities(searchCriteria)
 	if err != nil {
-		log.Print("Error fetching entity for the given search criteria")
+		return nil, fmt.Errorf("error fetching entity for the given search criteria: %w", err)
 	}
 
 	// filter by name to get exact entities
@@ -107,13 +106,12 @@ func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity
 
 		// Fallback: if no floor date is found or parse failed, pick the first one
 		if parentID == "" {
-			return nil, fmt.Errorf("Skipping relation update (reciever not found for the given date): %w", err)
+			return nil, fmt.Errorf("skipping relation update (receiver not found for the given date): %s", entity.Created)
 		}
 	}
 
 	// make a unique relation ID
-	currentTimestamp := strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", "-")
-	uniqueRelationshipID := fmt.Sprintf("%s_%s_%s", parentID, createdEntity.ID, currentTimestamp)
+	uniqueRelationshipID := fmt.Sprintf("RTI_%s_%s", parentID, createdEntity.ID)
 
 	// payload for the parent
 	parentEntity := &models.Entity{
