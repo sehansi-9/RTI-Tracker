@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 
 	"github.com/LDFLK/RTI-Tracker/ingestion/internals/models"
 	"github.com/LDFLK/RTI-Tracker/ingestion/internals/ports"
@@ -25,44 +24,17 @@ func NewRTIService(ingestionClient *ports.IngestionService, readClient *ports.Re
 	}
 }
 
-// InsertTRIEntity calls the ingestion service to create an entity.
-func (s *RTIService) InsertRTIEntity(entity *models.RTIRequest) (*models.Entity, error) {
+// InsertTRIEntity calls the ingestion service to create an RTIEntity.
+func (s *RTIService) InsertRTIRequest(RTIEntity *models.RTIRequest) (*models.Entity, error) {
 
 	// validate input
-	if err := entity.Validate(); err != nil {
+	if err := RTIEntity.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid payload: %w", err)
 	}
 
-	// 1. Insert the RTI Entity to Graph
-	// Create a deterministic UUID so rerunning the script on the same data doesn't duplicate nodes
-	hashInput := fmt.Sprintf("%s_%s", entity.Created, entity.Index)
-	id := uuid.NewMD5(uuid.NameSpaceOID, []byte(hashInput))
-	rtiId := "rti_" + id.String()
-
-	// RTI payload
-	rtiEntity := &models.Entity{
-		ID:      rtiId,
-		Created: entity.Created,
-		Kind: models.Kind{
-			Major: "Document",
-			Minor: "rti",
-		},
-		Name: models.TimeBasedValue{
-			StartTime: entity.Created,
-			Value:     entity.Title,
-		},
-	}
-
-	// Call the generic interface's method
-	createdEntity, err := s.ingestionClient.CreateEntity(rtiEntity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create RTI: %w", err)
-	}
-
-	// 2. Make the relation to the receiver
-	// find the receiver
+	// 1. Verify the receiver exists or not
 	searchCriteria := &models.SearchCriteria{
-		Name: entity.ReceiverInstitution,
+		Name: RTIEntity.ReceiverInstitution,
 		Kind: &models.Kind{
 			Major: "Organisation",
 		},
@@ -76,7 +48,7 @@ func (s *RTIService) InsertRTIEntity(entity *models.RTIRequest) (*models.Entity,
 	// filter by name to get exact entities
 	var filteredSearchResult []models.SearchResult
 	for _, value := range searchEntities {
-		if strings.EqualFold(value.Name, entity.ReceiverInstitution) {
+		if strings.EqualFold(value.Name, RTIEntity.ReceiverInstitution) {
 			filteredSearchResult = append(filteredSearchResult, value)
 		}
 	}
@@ -86,68 +58,84 @@ func (s *RTIService) InsertRTIEntity(entity *models.RTIRequest) (*models.Entity,
 	// relation search criteria
 	relationSearchCriteriaMinistry := models.Relationship{
 		Direction: "INCOMING",
-		ActiveAt:  entity.Created,
+		ActiveAt:  RTIEntity.Created,
 		Name:      "AS_MINISTER",
 	}
 
 	// relation search criteria
 	relationSearchCriteriaDepartment := models.Relationship{
 		Direction: "INCOMING",
-		ActiveAt:  entity.Created,
+		ActiveAt:  RTIEntity.Created,
 		Name:      "AS_DEPARTMENT",
 	}
 
 	// iterate through the filtered search result to find the active entity
 	for _, result := range filteredSearchResult {
 
-		// define variables for relations and errors
-		var (
-			searchedRelationMinistry   []models.Relationship
-			searchedRelationDepartment []models.Relationship
-			errMinistry                error
-			errDepartment              error
-			wg                         sync.WaitGroup
-		)
+		var minorKind string = result.Kind.Minor
 
-		wg.Add(2)
+		if minorKind == "cabinetMinister" || minorKind == "stateMinister" {
+			searchedRelationMinistry, err := s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaMinistry)
 
-		// goroutine function
-		go func() {
-			defer wg.Done()
-			searchedRelationMinistry, errMinistry = s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaMinistry)
-		}()
+			if err != nil {
+				log.Printf("[RTI] error fetching active cabinet or state minister relations %s", err)
+			}
 
-		// goroutine function
-		go func() {
-			defer wg.Done()
-			searchedRelationDepartment, errDepartment = s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaDepartment)
-		}()
+			if len(searchedRelationMinistry) > 1 {
+				log.Printf("[RTI] multiple active relationships found for %s on %s", result.ID, RTIEntity.Created)
+			} else if len(searchedRelationMinistry) == 1 {
+				parentID = result.ID
+				break
+			}
 
-		// wait until the task finish
-		wg.Wait()
+		} else if minorKind == "department" {
+			searchedRelationDepartment, err := s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaDepartment)
 
-		if errMinistry != nil || errDepartment != nil {
-			log.Printf("[RTI] relation error fetching %s or %s", errMinistry, errDepartment)
-			continue
+			if err != nil {
+				log.Printf("[RTI] error fetching active department relations %s", err)
+			}
+
+			if len(searchedRelationDepartment) > 1 {
+				log.Printf("[RTI] multiple active relationships found for %s on %s", result.ID, RTIEntity.Created)
+			} else if len(searchedRelationDepartment) == 1 {
+				parentID = result.ID
+				break
+			}
 		}
-
-		if len(searchedRelationMinistry) > 0 && len(searchedRelationDepartment) > 0 {
-			log.Printf("[RTI] multiple parent entities found for RTI: %s", entity.Title)
-			continue
-		}
-
-		if len(searchedRelationMinistry) == 0 && len(searchedRelationDepartment) == 0 {
-			continue
-		}
-
-		parentID = result.ID
 
 	}
 
 	if parentID == "" {
-		return nil, fmt.Errorf("[RTI] skipping relation update (receiver not found for the given date): %s", entity.Created)
+		return nil, fmt.Errorf("[RTI] skipping RTI creation (receiver not found for the given date): %s, receiver: %s", RTIEntity.Created, RTIEntity.ReceiverInstitution)
 	}
 
+	// 2. Insert the RTI Entity to Graph
+	// Create a deterministic UUID so rerunning the script on the same data doesn't duplicate nodes
+	hashInput := fmt.Sprintf("%s_%s", RTIEntity.Created, RTIEntity.Index)
+	id := uuid.NewMD5(uuid.NameSpaceOID, []byte(hashInput))
+	rtiId := "rti_" + id.String()
+
+	// RTI payload
+	rtiEntity := &models.Entity{
+		ID:      rtiId,
+		Created: RTIEntity.Created,
+		Kind: models.Kind{
+			Major: "Document",
+			Minor: "rti",
+		},
+		Name: models.TimeBasedValue{
+			StartTime: RTIEntity.Created,
+			Value:     RTIEntity.Title,
+		},
+	}
+
+	// Call the generic interface's method
+	createdEntity, err := s.ingestionClient.CreateEntity(rtiEntity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RTI: %w", err)
+	}
+
+	// 3. Make the relation to the receiver
 	// make a unique relation ID
 	uniqueRelationshipID := uuid.New().String()
 
@@ -159,7 +147,7 @@ func (s *RTIService) InsertRTIEntity(entity *models.RTIRequest) (*models.Entity,
 				Key: uniqueRelationshipID,
 				Value: models.Relationship{
 					RelatedEntityID: createdEntity.ID,
-					StartTime:       entity.Created,
+					StartTime:       RTIEntity.Created,
 					EndTime:         "",
 					ID:              uniqueRelationshipID,
 					Name:            "AS_RTI",

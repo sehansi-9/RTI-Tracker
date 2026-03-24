@@ -48,7 +48,11 @@ func main() {
 	// validate flags
 	if *dataDir == "" {
 		fmt.Fprintf(os.Stderr, "Error: Data directory path is required\n\n")
+		os.Exit(1)
 	}
+
+	var requestErrors []string
+	var rtiRequestCount int
 
 	err := filepath.WalkDir(*dataDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -127,11 +131,15 @@ func main() {
 						Index:               index,
 					}
 
-					_, err = s.InsertRTIEntity(entity)
+					_, err = s.InsertRTIRequest(entity)
 
 					if err != nil {
-						log.Printf("Entity creation failed %s", title)
+						log.Printf("[main] RTI Insertion failed %s", err)
+						requestErrors = append(requestErrors, err.Error())
+						continue
 					}
+
+					rtiRequestCount++
 
 				}
 
@@ -144,8 +152,9 @@ func main() {
 
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(0)
 	}
 
-	fmt.Println("Successfully processed all arguments")
+	log.Printf("Processed %d RTI requests successfully (noted %d errors).", rtiRequestCount, len(requestErrors))
 
 }

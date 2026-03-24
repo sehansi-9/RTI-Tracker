@@ -12,7 +12,7 @@
 
 #### run the scripts
 ```
-    go run ./cmd/app/main.go --data "../data"
+    go run ./cmd/app/main.go --data "../data/RTI" -v
 ```
 
 -------- or --------

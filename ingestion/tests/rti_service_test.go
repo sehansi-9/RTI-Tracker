@@ -113,6 +113,10 @@ func TestProcessRTI(t *testing.T) {
 						ID:      "parent-org-id",
 						Name:    "{\"typeUrl\":\"\",\"value\":\"5265636569766572496e737469747574696f6e5f31\"}",
 						Created: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
+						Kind: models.Kind{
+							Major: "Organisation",
+							Minor: "cabinetMinister",
+						},
 					},
 				},
 			}
@@ -166,7 +170,7 @@ func TestProcessRTI(t *testing.T) {
 			readClient := ports.NewReadService(testClient)
 			service := core.NewRTIService(ingestionClient, readClient)
 
-			result, err := service.InsertRTIEntity(&tc)
+			result, err := service.InsertRTIRequest(&tc)
 
 			// validate empty title
 			if strings.TrimSpace(tc.Title) == "" {
