@@ -87,11 +87,6 @@ type SearchResponse struct {
 	Body []SearchResult `json:"body"`
 }
 
-// RootEntitiesResponse represents the response from the root entities endpoint
-type RootEntitiesResponse struct {
-	Body []string `json:"body"`
-}
-
 // AttributeValue represents a single time-based attribute value
 type AttributeValue struct {
 	Start string `json:"start"`

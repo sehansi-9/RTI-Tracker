@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
-	"sort"
+	"log"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/LDFLK/RTI-Tracker/ingestion/internals/models"
 	"github.com/LDFLK/RTI-Tracker/ingestion/internals/ports"
@@ -25,8 +25,8 @@ func NewRTIService(ingestionClient *ports.IngestionService, readClient *ports.Re
 	}
 }
 
-// AddTRIEntity calls the ingestion service to create an entity.
-func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity, error) {
+// InsertTRIEntity calls the ingestion service to create an entity.
+func (s *RTIService) InsertRTIEntity(entity *models.RTIRequest) (*models.Entity, error) {
 
 	// validate input
 	if err := entity.Validate(); err != nil {
@@ -39,13 +39,13 @@ func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity
 	id := uuid.NewMD5(uuid.NameSpaceOID, []byte(hashInput))
 	rtiId := "rti_" + id.String()
 
-	// TRI payload
+	// RTI payload
 	rtiEntity := &models.Entity{
 		ID:      rtiId,
 		Created: entity.Created,
 		Kind: models.Kind{
 			Major: "Document",
-			Minor: "RTI",
+			Minor: "rti",
 		},
 		Name: models.TimeBasedValue{
 			StartTime: entity.Created,
@@ -82,48 +82,78 @@ func (s *RTIService) ProcessRTIEntity(entity *models.RTIRequest) (*models.Entity
 	}
 
 	var parentID string
-	if len(filteredSearchResult) > 0 {
-		sort.Slice(filteredSearchResult, func(i, j int) bool {
-			// Sort in descending order by created date
-			timeI, errI := time.Parse(time.RFC3339, filteredSearchResult[i].Created)
-			timeJ, errJ := time.Parse(time.RFC3339, filteredSearchResult[j].Created)
-			if errI != nil || errJ != nil {
-				return filteredSearchResult[i].Created > filteredSearchResult[j].Created
-			}
-			return timeI.After(timeJ)
-		})
 
-		entityCreatedTime, err := time.Parse(time.RFC3339, entity.Created)
-		if err != nil {
-			return nil, fmt.Errorf("failed time parsing")
+	// relation search criteria
+	relationSearchCriteriaMinistry := models.Relationship{
+		Direction: "INCOMING",
+		ActiveAt:  entity.Created,
+		Name:      "AS_MINISTER",
+	}
+
+	// relation search criteria
+	relationSearchCriteriaDepartment := models.Relationship{
+		Direction: "INCOMING",
+		ActiveAt:  entity.Created,
+		Name:      "AS_DEPARTMENT",
+	}
+
+	// iterate through the filtered search result to find the active entity
+	for _, result := range filteredSearchResult {
+
+		// define variables for relations and errors
+		var (
+			searchedRelationMinistry   []models.Relationship
+			searchedRelationDepartment []models.Relationship
+			errMinistry                error
+			errDepartment              error
+			wg                         sync.WaitGroup
+		)
+
+		wg.Add(2)
+
+		// goroutine function
+		go func() {
+			defer wg.Done()
+			searchedRelationMinistry, errMinistry = s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaMinistry)
+		}()
+
+		// goroutine function
+		go func() {
+			defer wg.Done()
+			searchedRelationDepartment, errDepartment = s.readClient.GetRelatedEntities(result.ID, &relationSearchCriteriaDepartment)
+		}()
+
+		// wait until the task finish
+		wg.Wait()
+
+		if errMinistry != nil || errDepartment != nil {
+			log.Printf("[RTI] relation error fetching %s or %s", errMinistry, errDepartment)
+			continue
 		}
 
-		for _, result := range filteredSearchResult {
-			resultTime, err := time.Parse(time.RFC3339, result.Created)
-			if err == nil && !resultTime.After(entityCreatedTime) {
-				parentID = result.ID
-				break
-			}
+		if len(searchedRelationMinistry) > 0 && len(searchedRelationDepartment) > 0 {
+			log.Printf("[RTI] multiple parent entities found for RTI: %s", entity.Title)
+			continue
 		}
 
-		// Fallback: if no floor date is found or parse failed, pick the first one
-		if parentID == "" {
-			return nil, fmt.Errorf("skipping relation update (receiver not found for the given date): %s", entity.Created)
+		if len(searchedRelationMinistry) == 0 && len(searchedRelationDepartment) == 0 {
+			continue
 		}
+
+		parentID = result.ID
+
+	}
+
+	if parentID == "" {
+		return nil, fmt.Errorf("[RTI] skipping relation update (receiver not found for the given date): %s", entity.Created)
 	}
 
 	// make a unique relation ID
-	uniqueRelationshipID := fmt.Sprintf("RTI_%s_%s", parentID, createdEntity.ID)
+	uniqueRelationshipID := uuid.New().String()
 
 	// payload for the parent
 	parentEntity := &models.Entity{
-		ID:         parentID,
-		Kind:       models.Kind{},
-		Created:    "",
-		Terminated: "",
-		Name:       models.TimeBasedValue{},
-		Metadata:   []models.MetadataEntry{},
-		Attributes: []models.AttributeEntry{},
+		ID: parentID,
 		Relationships: []models.RelationshipEntry{
 			{
 				Key: uniqueRelationshipID,

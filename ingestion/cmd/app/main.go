@@ -29,18 +29,18 @@ func main() {
 	flag.Parse()
 
 	// access environment variables
-	ingesUrl := os.Getenv("INGESTION_URL")
-	if ingesUrl == "" {
+	ingestionUrl := os.Getenv("INGESTION_URL")
+	if ingestionUrl == "" {
 		log.Fatal("Ingestion Service URL Required")
 	}
 
-	reUrl := os.Getenv("READ_URL")
-	if reUrl == "" {
+	readUrl := os.Getenv("READ_URL")
+	if readUrl == "" {
 		log.Fatal("Read Service URL Required")
 	}
 
 	// Initialize services
-	apiClient := client.ApiClient(ingesUrl, reUrl)
+	apiClient := client.ApiClient(ingestionUrl, readUrl)
 	ingestionService := ports.NewIngestionService(*apiClient)
 	readService := ports.NewReadService(*apiClient)
 	s := core.NewRTIService(ingestionService, readService)
@@ -109,15 +109,17 @@ func main() {
 					}
 
 					title := record[0]
-					content := record[1]
-					sender := record[2]
-					receiverInstitution := record[3]
-					receiverPosition := record[4]
+					description := record[1]
+					source := record[2]
+					sender := record[3]
+					receiverInstitution := record[4]
+					receiverPosition := record[5]
 
 					// field data to the RTIRequest
 					entity := &models.RTIRequest{
 						Title:               title,
-						Content:             content,
+						Description:         description,
+						Source:              source,
 						Sender:              sender,
 						ReceiverInstitution: receiverInstitution,
 						ReceiverPosition:    receiverPosition,
@@ -125,7 +127,7 @@ func main() {
 						Index:               index,
 					}
 
-					_, err = s.ProcessRTIEntity(entity)
+					_, err = s.InsertRTIEntity(entity)
 
 					if err != nil {
 						log.Printf("Entity creation failed %s", title)

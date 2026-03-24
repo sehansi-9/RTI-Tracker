@@ -7,7 +7,8 @@ import (
 
 type RTIRequest struct {
 	Title               string `json:"title"`
-	Content             string `json:"content"`
+	Description         string `json:"description"`
+	Source              string `json:"source"`
 	Sender              string `json:"sender"`
 	ReceiverInstitution string `json:"receiver_institution"`
 	ReceiverPosition    string `json:"receiver_position"`
@@ -22,9 +23,14 @@ func (r *RTIRequest) Validate() error {
 		return fmt.Errorf("RTI request title cannot be empty")
 	}
 
-	// validate content
-	if strings.TrimSpace(r.Content) == "" {
-		return fmt.Errorf("RTI request content cannot be empty")
+	// validate description
+	if strings.TrimSpace(r.Description) == "" {
+		return fmt.Errorf("RTI request description cannot be empty")
+	}
+
+	// validate source
+	if strings.TrimSpace(r.Source) == "" {
+		return fmt.Errorf("RTI request source cannot be empty")
 	}
 
 	// validate sender

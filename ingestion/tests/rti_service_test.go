@@ -23,7 +23,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> success
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_1",
-		Content:             "Content_1",
+		Description:         "Description_1",
+		Source:              "Source_1",
 		Sender:              "Sender_1",
 		ReceiverInstitution: "ReceiverInstitution_1",
 		ReceiverPosition:    "ReceiverPosition_1",
@@ -33,7 +34,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with spaces in created date
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_2",
-		Content:             "Content_2",
+		Description:         "Description_2",
+		Source:              "Source_2",
 		Sender:              "Sender_2",
 		ReceiverInstitution: "ReceiverInstitution_2",
 		ReceiverPosition:    "ReceiverPosition_2",
@@ -43,7 +45,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with empty receiver institution
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_3",
-		Content:             "Content_3",
+		Description:         "Description_3",
+		Source:              "Source_3",
 		Sender:              "Sender_3",
 		ReceiverInstitution: "",
 		ReceiverPosition:    "ReceiverPosition_3",
@@ -53,7 +56,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with empty receiver position
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_4",
-		Content:             "Content_4",
+		Description:         "Description_4",
+		Source:              "Source_4",
 		Sender:              "Sender_4",
 		ReceiverInstitution: "ReceiverInstitution_4",
 		ReceiverPosition:    "",
@@ -63,7 +67,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with empty title
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "",
-		Content:             "Content_5",
+		Description:         "Description_5",
+		Source:              "Source_5",
 		Sender:              "Sender_5",
 		ReceiverInstitution: "ReceiverInstitution_5",
 		ReceiverPosition:    "ReceiverPosition_5",
@@ -73,8 +78,9 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with empty content
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_6",
-		Content:             "",
-		Sender:              "Sender_6",
+		Description:         "",
+		Source:              "Source_6",
+		Sender:              "Sender_7",
 		ReceiverInstitution: "ReceiverInstitution_6",
 		ReceiverPosition:    "ReceiverPosition_6",
 		Created:             time.Now().Format(time.RFC3339),
@@ -83,7 +89,8 @@ func TestProcessRTI(t *testing.T) {
 	// payload --> with empty sender
 	rtiRequestList = append(rtiRequestList, models.RTIRequest{
 		Title:               "Title_7",
-		Content:             "Content_7",
+		Description:         "Description_7",
+		Source:              "Source_7",
 		Sender:              "",
 		ReceiverInstitution: "ReceiverInstitution_7",
 		ReceiverPosition:    "ReceiverPosition_7",
@@ -110,6 +117,25 @@ func TestProcessRTI(t *testing.T) {
 				},
 			}
 			json.NewEncoder(w).Encode(mockSearchResponse)
+			return
+		}
+
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/relations") {
+			w.WriteHeader(http.StatusOK)
+			var reqBody models.Relationship
+			json.NewDecoder(r.Body).Decode(&reqBody)
+
+			if reqBody.Name == "AS_MINISTER" {
+				mockRelations := []models.Relationship{
+					{
+						Direction: "INCOMING",
+						Name:      "AS_MINISTER",
+					},
+				}
+				json.NewEncoder(w).Encode(mockRelations)
+			} else {
+				json.NewEncoder(w).Encode([]models.Relationship{})
+			}
 			return
 		}
 
@@ -140,7 +166,7 @@ func TestProcessRTI(t *testing.T) {
 			readClient := ports.NewReadService(testClient)
 			service := core.NewRTIService(ingestionClient, readClient)
 
-			result, err := service.ProcessRTIEntity(&tc)
+			result, err := service.InsertRTIEntity(&tc)
 
 			// validate empty title
 			if strings.TrimSpace(tc.Title) == "" {
@@ -150,10 +176,18 @@ func TestProcessRTI(t *testing.T) {
 				return
 			}
 
-			// validate empty content
-			if strings.TrimSpace(tc.Content) == "" {
-				if err == nil || err.Error() != "invalid payload: RTI request content cannot be empty" {
-					t.Fatalf("Expected content empty err, got: %v", err)
+			// validate empty description
+			if strings.TrimSpace(tc.Description) == "" {
+				if err == nil || err.Error() != "invalid payload: RTI request description cannot be empty" {
+					t.Fatalf("Expected description empty err, got: %v", err)
+				}
+				return
+			}
+
+			// validate empty source
+			if strings.TrimSpace(tc.Source) == "" {
+				if err == nil || err.Error() != "invalid payload: RTI request source cannot be empty" {
+					t.Fatalf("Expected source empty err, got: %v", err)
 				}
 				return
 			}
