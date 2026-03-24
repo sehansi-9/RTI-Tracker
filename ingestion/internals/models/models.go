@@ -1,0 +1,121 @@
+package models
+
+import (
+	"encoding/base64"
+	"encoding/json"
+)
+
+// Entity represents the main entity structure
+type Entity struct {
+	ID            string              `json:"id,omitempty"`
+	Kind          Kind                `json:"kind,omitempty"`
+	Created       string              `json:"created,omitempty"`
+	Terminated    string              `json:"terminated,omitempty"`
+	Name          TimeBasedValue      `json:"name"`
+	Metadata      []MetadataEntry     `json:"metadata,omitempty"`
+	Attributes    []AttributeEntry    `json:"attributes,omitempty"`
+	Relationships []RelationshipEntry `json:"relationships,omitempty"`
+}
+
+// Kind represents the entity kind structure
+type Kind struct {
+	Major string `json:"major"`
+	Minor string `json:"minor"`
+}
+
+// TimeBasedValue represents a value that changes over time
+type TimeBasedValue struct {
+	StartTime string      `json:"startTime"`
+	EndTime   string      `json:"endTime,omitempty"`
+	Value     interface{} `json:"value"`
+}
+
+// AttributeEntry represents a key-value pair in the attributes array
+type AttributeEntry struct {
+	Key   string                   `json:"key"`
+	Value AttributeValueCollection `json:"value"`
+}
+
+// AttributeValueCollection represents the value structure for attributes
+type AttributeValueCollection struct {
+	Values []TimeBasedValue `json:"values"`
+}
+
+// MetadataEntry represents a key-value pair in the metadata array
+type MetadataEntry struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+// RelationshipEntry represents a key-value pair in the relationships array
+type RelationshipEntry struct {
+	Key   string       `json:"key"`
+	Value Relationship `json:"value"`
+}
+
+// Relationship represents a relationship between entities
+type Relationship struct {
+	RelatedEntityID string `json:"relatedEntityId"`
+	StartTime       string `json:"startTime"`
+	EndTime         string `json:"endTime"`
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Direction       string `json:"direction,omitempty"`
+	ActiveAt        string `json:"activeAt,omitempty"`
+}
+
+// SearchCriteria represents the search parameters for entity search
+type SearchCriteria struct {
+	ID         string `json:"id,omitempty"`
+	Kind       *Kind  `json:"kind,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Created    string `json:"created,omitempty"`
+	Terminated string `json:"terminated,omitempty"`
+}
+
+// SearchResult represents a single entity in search results
+type SearchResult struct {
+	ID         string `json:"id"`
+	Kind       Kind   `json:"kind"`
+	Name       string `json:"name"`
+	Created    string `json:"created"`
+	Terminated string `json:"terminated,omitempty"`
+}
+
+// SearchResponse represents the response from the search endpoint
+type SearchResponse struct {
+	Body []SearchResult `json:"body"`
+}
+
+// AttributeValue represents a single time-based attribute value
+type AttributeValue struct {
+	Start string `json:"start"`
+	End   string `json:"end,omitempty"`
+	Value string `json:"value"`
+}
+
+// UnmarshalName handles unmarshaling of a name field that could be either a simple string
+// or a protobuf-style object with base64 encoded value
+func UnmarshalName(data []byte) (string, error) {
+	// Try to unmarshal as a simple string first
+	var simpleName string
+	if err := json.Unmarshal(data, &simpleName); err == nil {
+		return simpleName, nil
+	}
+
+	// If that fails, try to unmarshal as a protobuf string value
+	var protobufName struct {
+		TypeURL string `json:"typeUrl"`
+		Value   string `json:"value"`
+	}
+	if err := json.Unmarshal(data, &protobufName); err != nil {
+		return "", err
+	}
+
+	// Decode the base64 value
+	decoded, err := base64.StdEncoding.DecodeString(protobufName.Value)
+	if err != nil {
+		return "", err
+	}
+	return string(decoded), nil
+}
