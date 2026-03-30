@@ -92,22 +92,22 @@ INSERT INTO rti_requests (title, description, sender_id, receiver_id, rti_templa
 -- Scenario 1: Inquiry on Hospital Supplies (Sent for Approval -> Approved -> Sent to Receiver)
 INSERT INTO rti_status_history (rti_request_id, status_id, direction, description, entry_time, exit_time, file) VALUES 
 ((SELECT id FROM rti_requests WHERE title = 'Inquiry on Hospital Supplies' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_FOR_APPROVAL' LIMIT 1), 'sent', 'Initial request submitted for internal approval.', NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days', 'requests/req_001.pdf'),
-((SELECT id FROM rti_requests WHERE title = 'Inquiry on Hospital Supplies' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'internal', 'Request approved by the designated official.', NOW() - INTERVAL '9 days', NOW() - INTERVAL '8 days', NULL),
+((SELECT id FROM rti_requests WHERE title = 'Inquiry on Hospital Supplies' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'sent', 'Request approved by the designated official.', NOW() - INTERVAL '9 days', NOW() - INTERVAL '8 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'Inquiry on Hospital Supplies' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_TO_RECEIVER' LIMIT 1), 'sent', 'Request officially forwarded to the Ministry of Health.', NOW() - INTERVAL '8 days', NULL, NULL);
 
 -- Scenario 2: School Expenditure 2024 (Sent for Approval -> Rejected -> Sent for Approval -> Approved -> Sent to Receiver -> Completed)
 INSERT INTO rti_status_history (rti_request_id, status_id, direction, description, entry_time, exit_time, file) VALUES 
 ((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_FOR_APPROVAL' LIMIT 1), 'sent', 'Initial submission.', NOW() - INTERVAL '20 days', NOW() - INTERVAL '19 days', 'requests/req_002_v1.pdf'),
-((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'REJECTED' LIMIT 1), 'internal', 'Rejected: Missing required attachments.', NOW() - INTERVAL '19 days', NOW() - INTERVAL '18 days', NULL),
+((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'REJECTED' LIMIT 1), 'sent', 'Rejected: Missing required attachments.', NOW() - INTERVAL '19 days', NOW() - INTERVAL '18 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_FOR_APPROVAL' LIMIT 1), 'sent', 'Resubmitted with correct documents.', NOW() - INTERVAL '18 days', NOW() - INTERVAL '17 days', 'requests/req_002_v2.pdf'),
-((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'internal', 'Verified and approved.', NOW() - INTERVAL '17 days', NOW() - INTERVAL '16 days', NULL),
+((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'sent', 'Verified and approved.', NOW() - INTERVAL '17 days', NOW() - INTERVAL '16 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_TO_RECEIVER' LIMIT 1), 'sent', 'Sent to Dept of Education.', NOW() - INTERVAL '16 days', NOW() - INTERVAL '5 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'School Expenditure 2024' LIMIT 1), (SELECT id FROM status WHERE name = 'COMPLETED' LIMIT 1), 'received', 'Final response received and shared.', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days', 'responses/data_002.zip');
 
 -- Scenario 3: Highway Project Budget (Sent for Approval -> Approved -> Sent to Receiver -> Other -> Completed)
 INSERT INTO rti_status_history (rti_request_id, status_id, direction, description, entry_time, exit_time, file) VALUES 
 ((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_FOR_APPROVAL' LIMIT 1), 'sent', 'Initial request submitted.', NOW() - INTERVAL '15 days', NOW() - INTERVAL '14 days', 'requests/req_003.pdf'),
-((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'internal', 'Internal approval granted.', NOW() - INTERVAL '14 days', NOW() - INTERVAL '13 days', NULL),
+((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'sent', 'Internal approval granted.', NOW() - INTERVAL '14 days', NOW() - INTERVAL '13 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_TO_RECEIVER' LIMIT 1), 'sent', 'Forwarded to RDA.', NOW() - INTERVAL '13 days', NOW() - INTERVAL '10 days', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'OTHER' LIMIT 1), 'received', 'Receiver requested clarification on project phase.', NOW() - INTERVAL '10 days', NOW() - INTERVAL '5 days', 'clarifications/ RDA_query.pdf'),
 ((SELECT id FROM rti_requests WHERE title = 'Highway Project Budget' LIMIT 1), (SELECT id FROM status WHERE name = 'COMPLETED' LIMIT 1), 'received', 'Clarification provided and final report issued.', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days', 'responses/final_report_003.pdf');
@@ -115,7 +115,7 @@ INSERT INTO rti_status_history (rti_request_id, status_id, direction, descriptio
 -- Scenario 4: Environmental Clearance List (Sent for Approval -> Approved -> Sent to Receiver)
 INSERT INTO rti_status_history (rti_request_id, status_id, direction, description, entry_time, exit_time, file) VALUES 
 ((SELECT id FROM rti_requests WHERE title = 'Environmental Clearance List' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_FOR_APPROVAL' LIMIT 1), 'sent', 'New request waiting for review.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day', 'requests/req_004.pdf'),
-((SELECT id FROM rti_requests WHERE title = 'Environmental Clearance List' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'internal', 'Approved by Senior Secretary.', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 hour', NULL),
+((SELECT id FROM rti_requests WHERE title = 'Environmental Clearance List' LIMIT 1), (SELECT id FROM status WHERE name = 'APPROVED' LIMIT 1), 'sent', 'Approved by Senior Secretary.', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 hour', NULL),
 ((SELECT id FROM rti_requests WHERE title = 'Environmental Clearance List' LIMIT 1), (SELECT id FROM status WHERE name = 'SENT_TO_RECEIVER' LIMIT 1), 'sent', 'Emailed to CEA.', NOW() - INTERVAL '1 hour', NULL, NULL);
 
 

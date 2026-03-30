@@ -1,5 +1,6 @@
 -- schema.sql
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE TYPE rti_direction AS ENUM ('sent','received');
 
 -- Create Tables
 -- SENDERS TABLE
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS rti_status_history (
     id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     rti_request_id uuid REFERENCES rti_requests(id),
     status_id uuid REFERENCES status(id),
-    direction VARCHAR DEFAULT 'sent' NOT NULL,
+    direction rti_direction DEFAULT 'sent' NOT NULL,
     description TEXT NOT NULL,
     entry_time TIMESTAMP NOT NULL,
     exit_time TIMESTAMP,
