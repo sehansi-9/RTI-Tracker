@@ -131,12 +131,12 @@ export function Templates() {
       fragment.appendChild(node);
     }
     
-    // Make sure we have a text node to place the cursor onto
+    // Make sure we have a text node (an invisible zero-width character) to place the cursor onto
     const spaceNode = document.createTextNode('\u200B');
     fragment.appendChild(spaceNode);
     
-    range.deleteContents();
-    range.insertNode(fragment);
+    range.deleteContents(); // Deletes any text the user currently has highlighted
+    range.insertNode(fragment);// Inserts the new variable
     
     // Force the cursor position right after the space node
     range.setStartAfter(spaceNode);
