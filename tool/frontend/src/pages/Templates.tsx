@@ -153,17 +153,31 @@ export function Templates() {
     const variable = JSON.parse(data);
     const pillHtml = createPillHtml(variable.code, variable.name);
 
-    // caretRangeFromPoint is technically deprecated but practically required for Chrome/Edge compat
-    // @ts-ignore - Bypass TS6385
-    if (document.caretRangeFromPoint) {
+    let range: Range | null = null;
+
+    // Use standard caretPositionFromPoint if available (Firefox)
+    // @ts-ignore - Type definitions might not include this yet
+    if (document.caretPositionFromPoint) {
       // @ts-ignore
-      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-      if (range) {
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        insertHtmlAtSelection(pillHtml, window.getSelection());
+      const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
       }
+    } 
+    // Fallback to older webkit/blink way (Chrome/Edge/Safari)
+    // @ts-ignore
+    else if (document.caretRangeFromPoint) {
+      // @ts-ignore
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    }
+
+    if (range) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      insertHtmlAtSelection(pillHtml, window.getSelection());
     }
   };
 
