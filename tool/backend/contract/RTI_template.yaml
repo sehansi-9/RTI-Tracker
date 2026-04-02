@@ -29,7 +29,6 @@ components:
       type: object
       required:
         - title
-        - description
         - file
       properties:
         title:
@@ -43,7 +42,7 @@ components:
         file:
           type: string
           format: binary
-          description: Template document to upload (PDF, Image). Will be stored on GitHub.
+          description: Template document to upload (Markdown file). Will be stored on GitHub.
 
     # Single template response
     RTITemplateResponse:
@@ -64,9 +63,8 @@ components:
           description: Description of the RTI template.
         file:
           type: string
-          format: uri
-          example: https://raw.githubusercontent.com/org/repo/main/templates/3fa85f64.pdf
-          description: Public GitHub URL of the uploaded file.
+          example: templates/3fa85f64.md
+          description: Relative path to the uploaded file.
         createdAt:
           type: string
           format: date-time
@@ -239,7 +237,7 @@ paths:
     post:
       summary: Create an RTI template
       operationId: createRTITemplate
-      description: Creates a new RTI template. The file is uploaded to GitHub and the URL is returned in `file`.
+      description: Creates a new RTI template. The file is uploaded to GitHub and its URL is returned in `file`.
       tags:
         - RTI Templates
       security:
@@ -253,7 +251,7 @@ paths:
               $ref: "#/components/schemas/RTITemplateRequest"
             encoding:
               file:
-                contentType: application/pdf, image/jpeg, image/png, image/webp
+                contentType: text/markdown
       responses:
         "201":
           description: RTI template created successfully.
@@ -265,7 +263,7 @@ paths:
                 id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                 title: Freedom of Information Request Template
                 description: A standard template for filing RTI requests.
-                file: https://raw.githubusercontent.com/org/repo/main/templates/3fa85f64.pdf
+                file: templates/3fa85f64.md
                 createdAt: "2026-03-31T09:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -298,7 +296,7 @@ paths:
                   - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                     title: Freedom of Information Request Template
                     description: A standard template for filing RTI requests.
-                    file: https://raw.githubusercontent.com/org/repo/main/templates/3fa85f64.pdf
+                    file: templates/3fa85f64.md
                     createdAt: "2026-03-31T09:00:00Z"
                 pagination:
                   page: 1
@@ -334,7 +332,7 @@ paths:
                 id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                 title: Freedom of Information Request Template
                 description: A standard template for filing RTI requests.
-                file: https://raw.githubusercontent.com/org/repo/main/templates/3fa85f64.pdf
+                file: templates/3fa85f64.md
                 createdAt: "2026-03-31T09:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -347,7 +345,7 @@ paths:
     put:
       summary: Update an RTI template
       operationId: updateRTITemplate
-      description: Fully replaces an RTI template. If a new file is supplied it is uploaded to GitHub; otherwise the existing URL is kept.
+      description: Fully replaces an RTI template. If a new file is provided, it will be uploaded to GitHub and the old one will be deleted; otherwise the existing URL is kept.
       tags:
         - RTI Templates
       security:
@@ -361,9 +359,6 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - title
-                - description
               properties:
                 title:
                   type: string
@@ -377,7 +372,7 @@ paths:
                   description: Optional. New file to replace the existing one on GitHub.
             encoding:
               file:
-                contentType: application/pdf, image/jpeg, image/png, image/webp
+                contentType: text/markdown
       responses:
         "200":
           description: RTI template updated successfully.
@@ -389,7 +384,7 @@ paths:
                 id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                 title: Updated RTI Request Template
                 description: Updated description for the RTI template.
-                file: https://raw.githubusercontent.com/org/repo/main/templates/3fa85f64-v2.pdf
+                file: templates/3fa85f64-v2.md
                 createdAt: "2026-03-31T09:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
