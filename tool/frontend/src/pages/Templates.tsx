@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { mockTemplates } from '../data/mockData';
 import { Template } from '../types/rti';
 import { Button } from '../components/Button';
-import { Save, Plus, Move, Trash2, X } from 'lucide-react';
+import { Save, Plus, Move, Trash2, X, Bold, Heading1, Heading2, Type } from 'lucide-react';
 
 export function Templates() {
   const [templates, setTemplates] = useState<Template[]>(mockTemplates);
@@ -28,27 +28,55 @@ export function Templates() {
     return `<span class="pill-chip inline-flex items-center gap-1 pl-2 pr-1 py-0.5 border border-blue-200 rounded mx-0.5 bg-blue-100 text-blue-800 text-xs font-semibold align-baseline cursor-default select-none" data-code="${code}" contenteditable="false">${name}<span class="pill-remove hover:bg-blue-300 rounded px-1 cursor-pointer opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center font-bold ml-0.5" onclick="this.parentElement.remove()">×</span></span>`;
   };
 
-  // Convert Markdown to HTML with pills
+  // Convert Markdown to HTML with pills and formatting
   const parseMarkdownToHtml = (markdown: string) => {
-    return markdown.replace(/{{([^}]+)}}/g, (match, p1) => {
+    let html = markdown;
+
+    // 1. Handle Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // 2. Handle Headings (simplified line-based)
+    html = html.split('\n').map(line => {
+      if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+      if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+      return line;
+    }).join('<br>');
+
+    // 3. Handle variables (pills)
+    html = html.replace(/{{([^}]+)}}/g, (match, p1) => {
       const name = p1.replace(/_/g, ' ');
       return createPillHtml(match, name);
     });
+
+    return html;
   };
 
   // Convert HTML back to Markdown
   const serializeHtmlToMarkdown = (html: string) => {
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = html.replace(/<br>/g, '\n');
 
-    // Replace pill spans with their data-code attribute
+    // Handle pill spans with their data-code attribute
     const pills = tempDiv.querySelectorAll('.pill-chip');
     pills.forEach((pill) => {
       const code = pill.getAttribute('data-code');
       pill.replaceWith(code || '');
     });
 
-    // Handle newlines: innerText preserves them better than textContent
+    // Handle Headings
+    const h1s = tempDiv.querySelectorAll('h1');
+    h1s.forEach(h1 => h1.replaceWith(`# ${h1.textContent}\n`));
+    const h2s = tempDiv.querySelectorAll('h2');
+    h2s.forEach(h2 => h2.replaceWith(`## ${h2.textContent}\n`));
+
+    // Handle Bold
+    const bolds = tempDiv.querySelectorAll('strong, b');
+    bolds.forEach(bold => bold.replaceWith(`**${bold.textContent}**`));
+
+    // Handle remaining divisions (divs/ps created by contentEditable)
+    const divs = tempDiv.querySelectorAll('div, p');
+    divs.forEach(div => div.replaceWith(`\n${div.textContent}\n`));
+
     return tempDiv.innerText || tempDiv.textContent || '';
   };
 
@@ -190,6 +218,11 @@ export function Templates() {
     insertHtmlAtSelection(pillHtml, window.getSelection());
   };
 
+  const applyFormat = (command: string, value: string | undefined = undefined) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
   return (
     <div className="h-[calc(100vh-3rem)] flex flex-col space-y-4">
       <div className="flex justify-between items-end">
@@ -271,13 +304,44 @@ export function Templates() {
                 </Button>
               </div>
 
+              <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50/50">
+                <button
+                  onClick={() => applyFormat('bold')}
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all"
+                  title="Bold"
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => applyFormat('formatBlock', 'h1')}
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
+                  title="Heading 1"
+                >
+                  <Heading1 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => applyFormat('formatBlock', 'h2')}
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
+                  title="Heading 2"
+                >
+                  <Heading2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => applyFormat('formatBlock', 'p')}
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
+                  title="Normal Text"
+                >
+                  <Type className="w-4 h-4" />
+                </button>
+              </div>
+
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
                 onDrop={onDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic"
+                className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold"
                 style={{ whiteSpace: 'pre-wrap' }}
                 data-placeholder="Start typing your template here..."
               />
