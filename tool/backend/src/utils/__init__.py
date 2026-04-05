@@ -1,5 +1,5 @@
-from .http_client import settings
+from .http_client import http_client
 
 __all__ = [
-    "settings"
+    "http_client"
 ]

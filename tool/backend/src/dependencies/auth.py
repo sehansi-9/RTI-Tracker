@@ -27,13 +27,13 @@ async def get_current_user(
         logger.warning("No authentication credentials provided in request")
         raise UnauthorizedException("No authentication token provided")
     
-    user_data = auth_service.introspect_token(credentials.credentials)
+    user_data = await auth_service.introspect_token(credentials.credentials)
     if not user_data:
         logger.warning("Token introspection failed or token is inactive")
         raise UnauthorizedException("Invalid or expired authentication token")
     
     # Fetch additional user details (email, groups/roles) from Userinfo endpoint
-    user_info = auth_service.get_user_info(credentials.credentials)
+    user_info = await auth_service.get_user_info(credentials.credentials)
     if user_info:
         user_data.update(user_info)
 
