@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { mockTemplates } from '../data/mockData';
 import { Template } from '../types/rti';
 import { Button } from '../components/Button';
-import { Save, Plus, Move, Trash2, Bold, Heading1, Heading2, Type } from 'lucide-react';
+import { Save, Plus, Move, Trash2, Bold, Italic, Heading1, Heading2, Type } from 'lucide-react';
 
 export function Templates() {
   const [templates, setTemplates] = useState<Template[]>(mockTemplates);
@@ -30,54 +30,60 @@ export function Templates() {
 
   // Convert Markdown to HTML with pills and formatting
   const parseMarkdownToHtml = (markdown: string) => {
-    let html = markdown;
+    let html = markdown || '';
 
-    // 1. Handle Bold
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // 1. Handle Bold & Italic
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'); // double asterik bold
+    html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>'); // single asterik italic
+    html = html.replace(/(?<!_|\{)_([^_\{}]+)_(?!_|\})/g, '<em>$1</em>'); // underscore italic
 
-    // 2. Handle Headings (simplified line-based)
-    html = html.split('\n').map(line => {
-      if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
-      if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
-      return line;
-    }).join('<br>');
-
-    // 3. Handle variables (pills)
+    // 2. Handle variables (pills)
     html = html.replace(/{{([^}]+)}}/g, (match, p1) => {
       const name = p1.replace(/_/g, ' ');
       return createPillHtml(match, name);
     });
+
+    // 3. Handle lines and headings
+    html = html.split('\n').map(line => {
+      if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+      if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+      return line ? `<div>${line}</div>` : `<div><br></div>`;
+    }).join('');
 
     return html;
   };
 
   // Convert HTML back to Markdown
   const serializeHtmlToMarkdown = (html: string) => {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html.replace(/<br>/g, '\n');
+    let cleanHtml = html.replace(/<br\s*\/?>/gi, '\n'); // Convert brs to \n
+    
+    cleanHtml = cleanHtml.replace(/<div[^>]*>/gi, '\n'); // Convert opening divs to a newline
+    cleanHtml = cleanHtml.replace(/<\/div>/gi, ''); // Erase closing divs
+    cleanHtml = cleanHtml.replace(/<p[^>]*>/gi, '\n'); // Convert opening paragraphs to a newline
+    cleanHtml = cleanHtml.replace(/<\/p>/gi, ''); // Erase closing paragraphs
+    
+    cleanHtml = cleanHtml.replace(/<h1[^>]*>/gi, '\n# '); // Convert Heading 1 into a newline + markdown '# '
+    cleanHtml = cleanHtml.replace(/<\/h1>/gi, ''); // Erase closing h1
+    cleanHtml = cleanHtml.replace(/<h2[^>]*>/gi, '\n## '); // Convert Heading 2 into a newline + markdown '## '
+    cleanHtml = cleanHtml.replace(/<\/h2>/gi, ''); // Erase closing h2
 
-    // Handle pill spans with their data-code attribute
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = cleanHtml;
+
     const pills = tempDiv.querySelectorAll('.pill-chip');
     pills.forEach((pill) => {
       const code = pill.getAttribute('data-code');
       pill.replaceWith(code || '');
     });
 
-    // Handle Headings
-    const h1s = tempDiv.querySelectorAll('h1');
-    h1s.forEach(h1 => h1.replaceWith(`# ${h1.textContent}\n`));
-    const h2s = tempDiv.querySelectorAll('h2');
-    h2s.forEach(h2 => h2.replaceWith(`## ${h2.textContent}\n`));
-
-    // Handle Bold
     const bolds = tempDiv.querySelectorAll('strong, b');
     bolds.forEach(bold => bold.replaceWith(`**${bold.textContent}**`));
 
-    // Handle remaining divisions (divs/ps created by contentEditable)
-    const divs = tempDiv.querySelectorAll('div, p');
-    divs.forEach(div => div.replaceWith(`\n${div.textContent}\n`));
+    const italics = tempDiv.querySelectorAll('em, i');
+    italics.forEach(italic => italic.replaceWith(`*${italic.textContent}*`));
 
-    return tempDiv.innerText || tempDiv.textContent || '';
+    let text = tempDiv.textContent || '';
+    return text.replace(/\n{3,}/g, '\n\n').trim();
   };
 
   // Sync editor when template changes
@@ -313,6 +319,13 @@ export function Templates() {
                   <Bold className="w-4 h-4" />
                 </button>
                 <button
+                  onClick={() => applyFormat('italic')}
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
+                  title="Italic"
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => applyFormat('formatBlock', 'h1')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
                   title="Heading 1"
@@ -341,7 +354,7 @@ export function Templates() {
                 suppressContentEditableWarning
                 onDrop={onDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold"
+                className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold [&_em]:italic [&_i]:italic"
                 style={{ whiteSpace: 'pre-wrap' }}
                 data-placeholder="Start typing your template here..."
                 data-gramm="false"
