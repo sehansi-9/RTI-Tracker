@@ -15,8 +15,8 @@ export function Templates() {
   const editorRef = useRef<HTMLDivElement>(null);
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(mockTemplates[0].name);
-  const [templateToDelete, setTemplateToDelete] = useState<{id: string, name: string} | null>(null);
+  const [editedName, setEditedName] = useState(mockTemplates[0].title);
+  const [templateToDelete, setTemplateToDelete] = useState<{id: string, title: string} | null>(null);
 
   const variables = [
     { name: 'date', code: '{{date}}', desc: 'Current Date' },
@@ -93,9 +93,9 @@ export function Templates() {
   useEffect(() => {
     if (selectedTemplate) {
       if (editorRef.current) {
-        editorRef.current.innerHTML = parseMarkdownToHtml(selectedTemplate.content);
+        editorRef.current.innerHTML = parseMarkdownToHtml(selectedTemplate.file);
       }
-      setEditedName(selectedTemplate.name);
+      setEditedName(selectedTemplate.title);
     }
   }, [selectedTemplate]);
 
@@ -106,9 +106,11 @@ export function Templates() {
   const addNewTemplate = () => {
     const newTemplate: Template = {
       id: `t-${Date.now()}`,
-      name: 'Untitled Template',
+      title: 'Untitled Template',
       description: 'New template',
-      content: ''
+      file: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     setTemplates([newTemplate, ...templates]);
     setSelectedTemplate(newTemplate);
@@ -117,23 +119,27 @@ export function Templates() {
   const saveTemplate = () => {
     if (!editorRef.current || !selectedTemplate) return;
     const markdown = serializeHtmlToMarkdown(editorRef.current.innerHTML);
+    const now = new Date();
+    
     const updatedTemplates = templates.map((t: Template) =>
       t.id === selectedTemplate.id
-        ? { ...t, content: markdown, name: editedName }
+        ? { ...t, file: markdown, title: editedName, updatedAt: now }
         : t
     );
+    
     setTemplates(updatedTemplates);
     setSelectedTemplate({
       ...selectedTemplate,
-      content: markdown,
-      name: editedName
+      file: markdown,
+      title: editedName,
+      updatedAt: now
     });
     setIsEditingName(false);
     toast.success('Template saved successfully!');
   };
 
-  const deleteTemplate = (id: string, name: string) => {
-    setTemplateToDelete({ id, name });
+  const deleteTemplate = (id: string, title: string) => {
+    setTemplateToDelete({ id, title });
   };
 
   const confirmDelete = () => {
@@ -273,12 +279,12 @@ export function Templates() {
                     {selectedTemplate?.id === template.id && (
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
                     )}
-                    {template.name}
+                    {template.title}
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteTemplate(template.id, template.name);
+                      deleteTemplate(template.id, template.title);
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
                   >
@@ -422,7 +428,7 @@ export function Templates() {
             <div className="flex flex-col gap-1">
               <h3 className="text-lg font-bold text-gray-900">Delete Template?</h3>
               <p className="text-sm text-gray-500">
-                Are you sure you want to delete "{templateToDelete.name}"? This action cannot be undone.
+                Are you sure you want to delete "{templateToDelete.title}"? This action cannot be undone.
               </p>
             </div>
             <div className="flex justify-end gap-3 mt-2">
