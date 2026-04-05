@@ -1,6 +1,5 @@
-from aiohttp import BasicAuth
 import logging
-import requests
+from aiohttp import BasicAuth
 from src.core import settings
 from typing import Optional, Any, Dict
 from src.utils import http_client

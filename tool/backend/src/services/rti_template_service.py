@@ -14,7 +14,7 @@ class RTITemplateService:
     def __init__(self, session: Session):
         self.session = session
 
-    async def get_rti_templates(
+    def get_rti_templates(
         self,
         *,
         page: int = 1,

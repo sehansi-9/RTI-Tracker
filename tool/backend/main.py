@@ -4,7 +4,6 @@ from src.routers import rti_template_router
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from src.core.exceptions import BaseAPIException, api_exception_handler
-from fastapi_versioning import VersionedFastAPI, version
 
 # Configure logging to show INFO level messages
 logging.basicConfig(level=logging.INFO)

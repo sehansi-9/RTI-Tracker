@@ -8,7 +8,7 @@ from sqlmodel import SQLModel, Session, create_engine
 @pytest.mark.asyncio
 async def test_get_rti_templates_default(in_memory_db):
     service = RTITemplateService(session=in_memory_db)
-    response = await service.get_rti_templates()
+    response = service.get_rti_templates()
     
     assert response.pagination.page == 1
     assert response.pagination.pageSize == 10
@@ -19,7 +19,7 @@ async def test_get_rti_templates_default(in_memory_db):
 @pytest.mark.asyncio
 async def test_get_rti_templates_custom_page(in_memory_db):
     service = RTITemplateService(session=in_memory_db)
-    response = await service.get_rti_templates(page=2, page_size=2)
+    response = service.get_rti_templates(page=2, page_size=2)
     
     assert response.pagination.page == 2
     assert response.pagination.pageSize == 2
@@ -35,7 +35,7 @@ async def test_get_rti_templates_empty_db():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         service = RTITemplateService(session=session)
-        response = await service.get_rti_templates()
+        response = service.get_rti_templates()
         
         assert response.pagination.page == 1
         assert response.pagination.totalItem == 0
@@ -46,7 +46,7 @@ async def test_get_rti_templates_empty_db():
 async def test_get_rti_templates_page_out_of_bounds(in_memory_db):
     """Requesting a page beyond total pages should return empty list."""
     service = RTITemplateService(session=in_memory_db)
-    response = await service.get_rti_templates(page=10, page_size=2)
+    response = service.get_rti_templates(page=10, page_size=2)
     
     assert response.pagination.page == 10
     assert response.data == []

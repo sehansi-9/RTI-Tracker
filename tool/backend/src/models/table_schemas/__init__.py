@@ -1,4 +1,4 @@
-from .table_shemas import RTITemplate
+from .table_schemas import RTITemplate
 
 __all__ = [
     "RTITemplate"
