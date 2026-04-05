@@ -344,6 +344,9 @@ export function Templates() {
                 className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold"
                 style={{ whiteSpace: 'pre-wrap' }}
                 data-placeholder="Start typing your template here..."
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
             </>
           ) : (
