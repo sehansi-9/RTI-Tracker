@@ -5,37 +5,44 @@ import { Template } from '../types/rti';
 import { Button } from '../components/Button';
 import { Save, Plus, Move, Trash2, Bold, Italic, Heading1, Heading2, Type } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/Pagination';
 
 export function Templates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [templateToDelete, setTemplateToDelete] = useState<{id: string, title: string} | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<{ id: string, title: string } | null>(null);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
   const editorRef = useRef<HTMLDivElement>(null);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
-  
+
+
+  const fetchTemplates = async (page: number = 1) => {
+    setIsLoading(true);
+    try {
+      const response = await templateService.getRTITemplates(page, 10);
+
+      setTemplates(response.data);
+      setPagination(response.pagination);
+
+      if (response.data.length > 0 && !selectedTemplate) {
+        setSelectedTemplate(response.data[0]);
+      }
+      return response.data;
+
+    } catch (error) {
+      toast.error('Failed to load templates');
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTemplates = async () => {
-      setIsLoading(true);
-      try {
-        const data = await templateService.getTemplates();
-        
-        setTemplates(data);
-        if (data.length > 0) {
-          setSelectedTemplate(data[0]);
-        }
-      } catch (error) {
-        toast.error('Failed to load templates');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTemplates();
+    fetchTemplates(1);
   }, []);
 
   const variables = [
@@ -79,12 +86,12 @@ export function Templates() {
   // Convert HTML back to Markdown
   const serializeHtmlToMarkdown = (html: string) => {
     let cleanHtml = html.replace(/<br\s*\/?>/gi, '\n'); // Convert brs to \n
-    
+
     cleanHtml = cleanHtml.replace(/<div[^>]*>/gi, '\n'); // Convert opening divs to a newline
     cleanHtml = cleanHtml.replace(/<\/div>/gi, ''); // Erase closing divs
     cleanHtml = cleanHtml.replace(/<p[^>]*>/gi, '\n'); // Convert opening paragraphs to a newline
     cleanHtml = cleanHtml.replace(/<\/p>/gi, ''); // Erase closing paragraphs
-    
+
     cleanHtml = cleanHtml.replace(/<h1[^>]*>/gi, '\n# '); // Convert Heading 1 into a newline + markdown '# '
     cleanHtml = cleanHtml.replace(/<\/h1>/gi, ''); // Erase closing h1
     cleanHtml = cleanHtml.replace(/<h2[^>]*>/gi, '\n## '); // Convert Heading 2 into a newline + markdown '## '
@@ -114,15 +121,15 @@ export function Templates() {
     const loadContent = async () => {
       if (selectedTemplate) {
         let content = selectedTemplate.content;
-        
+
         // load the file content from the URL if haven't already fetched it
         if (content === undefined && selectedTemplate.file) {
           try {
             const res = await fetch(selectedTemplate.file);
             content = await res.text();
-            
+
             // Cache the downloaded text back into the templates array so we don't fetch it again
-            setTemplates(prev => prev.map(t => 
+            setTemplates(prev => prev.map(t =>
               t.id === selectedTemplate.id ? { ...t, content: content } : t
             ));
             selectedTemplate.content = content; // update local pointer instantly
@@ -147,7 +154,7 @@ export function Templates() {
 
   const addNewTemplate = () => {
     const newTemplate: Template = {
-      id: `t-${Date.now()}`,
+      id: `new-${Date.now()}`,
       title: 'Untitled Template',
       description: 'New template',
       file: '',
@@ -159,45 +166,73 @@ export function Templates() {
     setSelectedTemplate(newTemplate);
   };
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!editorRef.current || !selectedTemplate) return;
     const markdown = serializeHtmlToMarkdown(editorRef.current.innerHTML);
-    const now = new Date();
-    
-    const updatedTemplates = templates.map((t: Template) =>
-      t.id === selectedTemplate.id
-        ? { ...t, content: markdown, title: editedName, updatedAt: now }
-        : t
-    );
-    
-    const updatedTemplate = {
-      ...selectedTemplate,
-      content: markdown,
-      title: editedName,
-      updatedAt: now
-    };
-    templateService.saveTemplate(updatedTemplate);
-    setTemplates(updatedTemplates);
-    setSelectedTemplate(updatedTemplate);
-    
-    setIsEditingName(false);
-    toast.success('Template saved successfully!');
+
+    const isNew = selectedTemplate.id.startsWith('new-');
+
+    try {
+      let savedTemplate;
+
+      if (isNew) {
+        savedTemplate = await templateService.createRTITemplate({
+          title: editedName,
+          description: selectedTemplate.description || '',
+          content: markdown,
+          file: '',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        toast.success('New template created!');
+      } else {
+        savedTemplate = await templateService.updateRTITemplate(selectedTemplate.id, {
+          title: editedName,
+          content: markdown
+        });
+        toast.success('Template updated!');
+      }
+
+      await fetchTemplates(1);
+
+      setSelectedTemplate(savedTemplate);
+      setIsEditingName(false);
+    } catch (error) {
+      toast.error('Failed to save template');
+    }
   };
 
   const deleteTemplate = (id: string, title: string) => {
     setTemplateToDelete({ id, title });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!templateToDelete) return;
-    const remaining = templates.filter((t: Template) => t.id !== templateToDelete.id);
-    setTemplates(remaining);
-    if (selectedTemplate?.id === templateToDelete.id) {
-      handleSelect(remaining.length > 0 ? remaining[0] : null);
-    }
-    templateService.deleteTemplate(templateToDelete.id);
-    toast.success('Template deleted');
+
     setTemplateToDelete(null);
+
+    try {
+      await templateService.deleteRTITemplate(templateToDelete.id);
+      toast.success('Template deleted');
+
+      const pageToFetch = templates.length === 1 && pagination.page > 1
+        ? pagination.page - 1
+        : pagination.page;
+
+      const isDeletingSelected = selectedTemplate?.id === templateToDelete.id;
+
+      const newData = await fetchTemplates(pageToFetch);
+
+      if (isDeletingSelected) {
+        if (newData && newData.length > 0) {
+          setSelectedTemplate(newData[0]);
+        } else {
+          setSelectedTemplate(null);
+        }
+      }
+    } catch (error) {
+      toast.error('Failed to delete template');
+    }
   };
 
   const onDragStart = (e: React.DragEvent, variable: any) => {
@@ -339,6 +374,14 @@ export function Templates() {
                   </button>
                 </div>
               ))}
+            </div>
+            {/* Pagination Controls */}
+            <div className="p-3 border-t border-gray-100 bg-gray-50/30">
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={(nextPage) => fetchTemplates(nextPage)}
+              />
             </div>
           </div>
         )}
@@ -484,13 +527,13 @@ export function Templates() {
               </p>
             </div>
             <div className="flex justify-end gap-3 mt-2">
-              <Button 
+              <Button
                 className="bg-gray-400 border border-gray-200 text-gray-700 hover:bg-gray-500"
                 onClick={() => setTemplateToDelete(null)}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 className="bg-red-600 hover:bg-red-700 text-white shadow-sm"
                 onClick={confirmDelete}
               >
