@@ -41,11 +41,11 @@ test('can create a new template', async ({ page }) => {
     await editor.pressSequentially('Hello ');
 
     // Insert a variable at the cursor with click
-    const senderNameVar = page.locator('div[draggable="true"]').filter({ hasText: 'sender_name' });
+    const senderNameVar = page.locator('div[draggable="true"]').filter({ hasText: 'Sender Name' });
     await senderNameVar.click();
     
     // check variable visibility
-    const pillSenderName = editor.locator('.pill-chip').filter({ hasText: 'sender_name' });
+    const pillSenderName = editor.locator('.pill-chip').filter({ hasText: 'Sender Name' });
     await expect(pillSenderName).toBeVisible();
 
     // Test Backspace to remove variable - 2 backspaces to remove the invisible space after each variable pill.
@@ -54,10 +54,10 @@ test('can create a new template', async ({ page }) => {
     await expect(pillSenderName).not.toBeVisible();
 
     //  Insert variable insertion by drag and drop
-    const dateVar = page.locator('div[draggable="true"]').filter({ hasText: 'date' }).first();
+    const dateVar = page.locator('div[draggable="true"]').filter({ hasText: 'Date' }).first();
     await dateVar.dragTo(editor);
     
-    const pillDate = editor.locator('.pill-chip').filter({ hasText: 'date' });
+    const pillDate = editor.locator('.pill-chip').filter({ hasText: 'Date' });
     await expect(pillDate).toBeVisible();
 
     await page.getByRole('button', { name: 'Save Template' }).click();

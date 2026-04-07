@@ -45,16 +45,17 @@ export function Templates() {
     fetchTemplates(1);
   }, []);
 
- const variables = [
-    { name: 'date', code: '{{date}}', desc: 'Current Date' },
-    { name: 'sender_name', code: '{{sender_name}}', desc: 'Applicant Name' },
-    { name: 'sender_email', code: '{{sender_email}}', desc: 'Applicant Email' },
-    { name: 'sender_address', code: '{{sender_address}}', desc: 'Applicant Address' },
-    { name: 'sender_contact_no', code: '{{sender_contact_no}}', desc: 'Applicant Contact No' },
-    { name: 'receiver_position', code: '{{receiver_position}}', desc: 'Target Position' },
-    { name: 'receiver_email', code: '{{receiver_email}}', desc: 'Receiver Email' },
-    { name: 'receiver_address', code: '{{receiver_address}}', desc: 'Receiver Address' },
-    { name: 'receiver_contact_no', code: '{{receiver_contact_no}}', desc: 'Receiver Contact No' },
+  const variables = [
+    { name: 'Date', code: '{{date}}', desc: 'Current Date' },
+    { name: 'Sender Name', code: '{{sender_name}}', desc: 'Applicant Name' },
+    { name: 'Sender Email', code: '{{sender_email}}', desc: 'Applicant Email' },
+    { name: 'Sender Address', code: '{{sender_address}}', desc: 'Applicant Address' },
+    { name: 'Sender Contact No', code: '{{sender_contact_no}}', desc: 'Applicant Contact No' },
+    { name: 'Receiver Institution', code: '{{receiver_institution}}', desc: 'Target Institution' },
+    { name: 'Receiver Position', code: '{{receiver_position}}', desc: 'Target Position' },
+    { name: 'Receiver Email', code: '{{receiver_email}}', desc: 'Receiver Email' },
+    { name: 'Receiver Address', code: '{{receiver_address}}', desc: 'Receiver Address' },
+    { name: 'Receiver Contact No', code: '{{receiver_contact_no}}', desc: 'Receiver Contact No' },
   ];
 
   // Helper to create a pill element
@@ -73,8 +74,8 @@ export function Templates() {
 
     // 2. Handle variables (pills)
     html = html.replace(/{{([^}]+)}}/g, (match, p1) => {
-      const name = p1.replace(/_/g, ' ');
-      return createPillHtml(match, name);
+      const formatted = p1.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      return createPillHtml(match, formatted);
     });
 
     // 3. Handle lines and headings
