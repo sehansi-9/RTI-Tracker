@@ -420,6 +420,7 @@ export function Templates() {
 
               <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50/50">
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => applyFormat('bold')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all"
                   title="Bold"
@@ -427,6 +428,7 @@ export function Templates() {
                   <Bold className="w-4 h-4" />
                 </button>
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => applyFormat('italic')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
                   title="Italic"
@@ -434,6 +436,7 @@ export function Templates() {
                   <Italic className="w-4 h-4" />
                 </button>
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => applyFormat('formatBlock', 'h1')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
                   title="Heading 1"
@@ -441,6 +444,7 @@ export function Templates() {
                   <Heading1 className="w-5 h-5" />
                 </button>
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => applyFormat('formatBlock', 'h2')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
                   title="Heading 2"
@@ -448,6 +452,7 @@ export function Templates() {
                   <Heading2 className="w-4 h-4" />
                 </button>
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => applyFormat('formatBlock', 'p')}
                   className="p-1.5 hover:bg-white hover:shadow-sm rounded border border-transparent hover:border-gray-200 text-gray-600 transition-all flex items-center gap-1"
                   title="Normal Text"
