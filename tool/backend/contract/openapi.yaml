@@ -16,10 +16,17 @@ security:
   - opaqueBearerToken: []
 
 paths:
+  # rti template paths
   /rti-templates:
     $ref: "./paths/rti-templates.yaml#/~1rti-templates"
   /rti-templates/{id}:
     $ref: "./paths/rti-templates.yaml#/~1rti-templates~1{id}"
+
+  # institutions paths
+  /institutions:
+    $ref: "./paths/institutions.yaml#/~1institutions"
+  /institution/{id}:
+    $ref: "./paths/institutions.yaml#/~1institution~1{id}"
 
 components:
   securitySchemes:
@@ -48,8 +55,8 @@ components:
     InternalServerError:
       $ref: "./components/responses/Errors.yaml#/InternalServerError"
   parameters:
-    TemplateId:
-      $ref: "./components/parameters/Templates.yaml#/TemplateId"
+    ObjectId:
+      $ref: "./components/parameters/object.yaml#/ObjectId"
     PageParam:
       $ref: "./components/parameters/Pagination.yaml#/PageParam"
     PageSizeParam:
