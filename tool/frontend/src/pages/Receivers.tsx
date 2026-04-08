@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus} from 'lucide-react';
 import { Button } from '../components/Button';
-import { Pagination } from '../components/Pagination';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Modal } from '../components/Modal';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { DataTable} from '../components/DataTable';
 import { receiversService } from '../services/receiversService';
 import { Institution, Position, Receiver } from '../types/db';
 
@@ -330,61 +330,25 @@ export function Receivers() {
             </Button>
           </div>
 
-          {receiversLoading ? (
-            <div className="p-10 text-center text-sm text-gray-500">Loading receivers...</div>
-          ) : receivers.length === 0 ? (
-            <div className="p-10 text-center text-sm text-gray-500">No receivers found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white">
-                  <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th className="px-4 py-3">Institution</th>
-                    <th className="px-4 py-3">Position</th>
-                    <th className="px-4 py-3">Email</th>
-                    <th className="px-4 py-3">Contact No</th>
-                    <th className="px-4 py-3">Address</th>
-                    <th className="px-4 py-3 w-[140px]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {receivers.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{r.institutionName || '-'}</td>
-                      <td className="px-4 py-3 text-gray-700">{r.positionName || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600">{r.email || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600">{r.contactNo || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600">{r.address || '-'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="px-2" onClick={() => openReceiverEdit(r)} title="Edit">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            className="px-2"
-                            onClick={() => setReceiverDeleteId(r.id)}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="p-3 border-t border-gray-100 bg-gray-50/30">
-            <Pagination
-              currentPage={receiversPagination.page}
-              totalPages={receiversPagination.totalPages}
-              onPageChange={(p) => loadReceivers(p)}
-            />
-          </div>
+          <DataTable
+            data={receivers}
+            columns={[
+              { header: 'Institution', accessor: 'institutionName', className: 'font-medium text-gray-900' },
+              { header: 'Position', accessor: 'positionName', className: 'text-gray-700' },
+              { header: 'Email', accessor: 'email', className: 'text-gray-600' },
+              { header: 'Contact No', accessor: 'contactNo', className: 'text-gray-600' },
+              { header: 'Address', accessor: 'address', className: 'text-gray-600' },
+            ]}
+            onEdit={openReceiverEdit}
+            onDelete={(r) => setReceiverDeleteId(r.id)}
+            loading={receiversLoading}
+            loadingMessage="Loading receivers..."
+            emptyMessage="No receivers found."
+            rowKey="id"
+            currentPage={receiversPagination.page}
+            totalPages={receiversPagination.totalPages}
+            onPageChange={(p) => loadReceivers(p)}
+          />
         </div>
       )}
 
@@ -397,53 +361,21 @@ export function Receivers() {
             </Button>
           </div>
 
-          {institutionsLoading ? (
-            <div className="p-10 text-center text-sm text-gray-500">Loading institutions...</div>
-          ) : institutions.length === 0 ? (
-            <div className="p-10 text-center text-sm text-gray-500">No institutions found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white">
-                  <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3 w-[140px]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {institutions.map((i) => (
-                    <tr key={i.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{i.name}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="px-2" onClick={() => openInstitutionEdit(i)} title="Edit">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            className="px-2"
-                            onClick={() => setInstitutionDeleteId(i.id)}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="p-3 border-t border-gray-100 bg-gray-50/30">
-            <Pagination
-              currentPage={institutionsPagination.page}
-              totalPages={institutionsPagination.totalPages}
-              onPageChange={(p) => loadInstitutions(p)}
-            />
-          </div>
+          <DataTable
+            data={institutions}
+            columns={[
+              { header: 'Name', accessor: 'name', className: 'font-medium text-gray-900' },
+            ]}
+            onEdit={openInstitutionEdit}
+            onDelete={(i) => setInstitutionDeleteId(i.id)}
+            loading={institutionsLoading}
+            loadingMessage="Loading institutions..."
+            emptyMessage="No institutions found."
+            rowKey="id"
+            currentPage={institutionsPagination.page}
+            totalPages={institutionsPagination.totalPages}
+            onPageChange={(p) => loadInstitutions(p)}
+          />
         </div>
       )}
 
@@ -456,53 +388,21 @@ export function Receivers() {
             </Button>
           </div>
 
-          {positionsLoading ? (
-            <div className="p-10 text-center text-sm text-gray-500">Loading positions...</div>
-          ) : positions.length === 0 ? (
-            <div className="p-10 text-center text-sm text-gray-500">No positions found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white">
-                  <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3 w-[140px]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {positions.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="px-2" onClick={() => openPositionEdit(p)} title="Edit">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            className="px-2"
-                            onClick={() => setPositionDeleteId(p.id)}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="p-3 border-t border-gray-100 bg-gray-50/30">
-            <Pagination
-              currentPage={positionsPagination.page}
-              totalPages={positionsPagination.totalPages}
-              onPageChange={(p) => loadPositions(p)}
-            />
-          </div>
+          <DataTable
+            data={positions}
+            columns={[
+              { header: 'Name', accessor: 'name', className: 'font-medium text-gray-900' },
+            ]}
+            onEdit={openPositionEdit}
+            onDelete={(p) => setPositionDeleteId(p.id)}
+            loading={positionsLoading}
+            loadingMessage="Loading positions..."
+            emptyMessage="No positions found."
+            rowKey="id"
+            currentPage={positionsPagination.page}
+            totalPages={positionsPagination.totalPages}
+            onPageChange={(p) => loadPositions(p)}
+          />
         </div>
       )}
 
