@@ -25,8 +25,8 @@ paths:
   # institutions paths
   /institutions:
     $ref: "./paths/institutions.yaml#/~1institutions"
-  /institution/{id}:
-    $ref: "./paths/institutions.yaml#/~1institution~1{id}"
+  /institutions/{id}:
+    $ref: "./paths/institutions.yaml#/~1institutions~1{id}"
 
 components:
   securitySchemes:
