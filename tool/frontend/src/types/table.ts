@@ -20,4 +20,6 @@ export interface TableProps<T> {
   onPageChange?: (page: number) => void;
   title?: string;
   onAdd?: () => void;
+  searchTerm?: string;
+  onSearch?: (value: string) => void;
 }

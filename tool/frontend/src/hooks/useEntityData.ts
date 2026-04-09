@@ -1,15 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Pagination, ListResponse } from '../types/api';
 
 export function useEntityData<T>(
-  listFn: (page: number, pageSize: number) => Promise<ListResponse<T>>,
+  listFn: (page: number, pageSize: number, search?: string) => Promise<ListResponse<T>>,
   removeFn: (id: string) => Promise<void>,
   entityLabel: string,
   pageSize: number = 10
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     pageSize,
@@ -17,10 +18,10 @@ export function useEntityData<T>(
     totalItems: 0,
   });
 
-  const loadData = useCallback(async (page: number = 1) => {
+  const loadData = useCallback(async (page: number = 1, search: string = searchTerm) => {
     setLoading(true);
     try {
-      const res = await listFn(page, pageSize);
+      const res = await listFn(page, pageSize, search);
       setData(res.data);
       setPagination(res.pagination);
     } catch (e) {
@@ -28,7 +29,17 @@ export function useEntityData<T>(
     } finally {
       setLoading(false);
     }
-  }, [listFn, entityLabel, pageSize]);
+  }, [listFn, entityLabel, pageSize, searchTerm]);
+
+  // Debounced search
+  const searchTimeout = useRef<NodeJS.Timeout>();
+  const onSearch = (value: string) => {
+    setSearchTerm(value);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      loadData(1, value);
+    }, 500);
+  };
 
   const confirmDelete = useCallback(async (id: string) => {
     try {
@@ -47,11 +58,13 @@ export function useEntityData<T>(
 
   useEffect(() => {
     loadData(1);
-  }, [loadData]);
+  }, [listFn]);
 
   return {
     data,
     loading,
+    searchTerm,
+    onSearch,
     pagination,
     onPageChange: loadData,
     confirmDelete,

@@ -12,19 +12,30 @@ let institutions = [...mockInstitutions];
 let positions = [...mockPositions];
 
 export const receiversService = {
-  async listReceivers(page: number, pageSize: number) {
+  async listReceivers(page: number, pageSize: number, search?: string) {
     await sleep();
 
-    // mocking response for pagination
+    let filtered = [...receivers];
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.institutionName?.toLowerCase().includes(q) ||
+        r.positionName?.toLowerCase().includes(q) ||
+        r.email?.toLowerCase().includes(q) ||
+        r.address?.toLowerCase().includes(q) ||
+        r.contactNo?.toLowerCase().includes(q)
+      );
+    }
+
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
-      data: receivers.slice(start, end),
+      data: filtered.slice(start, end),
       pagination: {
         page,
         pageSize,
-        totalItems: receivers.length,
-        totalPages: Math.ceil(receivers.length / pageSize)
+        totalItems: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
       }
     };
   },
@@ -76,17 +87,24 @@ export const receiversService = {
     receivers = receivers.filter(r => r.id !== id);
   },
 
-  async listInstitutions(page: number, pageSize: number) {
+  async listInstitutions(page: number, pageSize: number, search?: string) {
     await sleep();
+    
+    let filtered = [...institutions];
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(i => i.name.toLowerCase().includes(q));
+    }
+
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
-      data: institutions.slice(start, end),
+      data: filtered.slice(start, end),
       pagination: {
         page,
         pageSize,
-        totalItems: institutions.length,
-        totalPages: Math.ceil(institutions.length / pageSize)
+        totalItems: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
       }
     };
   },
@@ -105,13 +123,7 @@ export const receiversService = {
 
   async updateInstitution(id: string, payload: { name: string }) {
     await sleep();
-    institutions = institutions.map(i => 
-      i.id === id ? { ...i, ...payload, updatedAt: new Date() } : i
-    );
-    // Update cached names in receivers
-    receivers = receivers.map(r => 
-      r.institutionId === id ? { ...r, institutionName: payload.name } : r
-    );
+    institutions = institutions.map(i => i.id === id ? { ...i, ...payload, updatedAt: new Date() } : i);
     return institutions.find(i => i.id === id);
   },
 
@@ -120,17 +132,24 @@ export const receiversService = {
     institutions = institutions.filter(i => i.id !== id);
   },
 
-  async listPositions(page: number, pageSize: number) {
+  async listPositions(page: number, pageSize: number, search?: string) {
     await sleep();
+
+    let filtered = [...positions];
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
+    }
+
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
-      data: positions.slice(start, end),
+      data: filtered.slice(start, end),
       pagination: {
         page,
         pageSize,
-        totalItems: positions.length,
-        totalPages: Math.ceil(positions.length / pageSize)
+        totalItems: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
       }
     };
   },
@@ -149,13 +168,7 @@ export const receiversService = {
 
   async updatePosition(id: string, payload: { name: string }) {
     await sleep();
-    positions = positions.map(p => 
-      p.id === id ? { ...p, ...payload, updatedAt: new Date() } : p
-    );
-    // Update cached names in receivers
-    receivers = receivers.map(r => 
-      r.positionId === id ? { ...r, positionName: payload.name } : r
-    );
+    positions = positions.map(p => p.id === id ? { ...p, ...payload, updatedAt: new Date() } : p);
     return positions.find(p => p.id === id);
   },
 
