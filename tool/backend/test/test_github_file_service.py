@@ -2,11 +2,11 @@
 import uuid
 import pytest
 from unittest.mock import MagicMock, patch
-from src.services.file_service import FileService
+from src.services import GithubFileService
 from src.core.exceptions import BadRequestException, InternalServerException
 from github import GithubException
 
-# Helper — bare FileService instance with mocked GitHub repository
+# Helper — bare GithubFileService instance with mocked GitHub repository
 def _make_service(
     create_file_return=None,
     create_file_side_effect=None,
@@ -14,14 +14,14 @@ def _make_service(
     get_contents_side_effect=None,
     delete_file_return=None,
     delete_file_side_effect=None,
-) -> FileService:
-    """Builds a FileService instance by mocking GitHub to avoid actual network calls."""
-    with patch("src.services.file_service.Github") as MockGithub:
+) -> GithubFileService:
+    """Builds a GithubFileService instance by mocking GitHub to avoid actual network calls."""
+    with patch("src.services.github_file_service.Github") as MockGithub:
         mock_github_instance = MockGithub.return_value
         mock_repo = MagicMock()
         mock_github_instance.get_repo.return_value = mock_repo
         
-        service = FileService()
+        service = GithubFileService()
         
         # Set expected mock properties for the tests
         service.repository = mock_repo
@@ -45,10 +45,10 @@ def _make_service(
 
 # service initialization test
 def test_file_service_initialization():
-    """Test that FileService correctly initializes instance attributes."""
+    """Test that GithubFileService correctly initializes instance attributes."""
     # We patch Github so we don't actually hit the API or require real tokens
-    with patch("src.services.file_service.Github") as mock_github:
-        service = FileService()
+    with patch("src.services.github_file_service.Github") as mock_github:
+        service = GithubFileService()
         assert hasattr(service, "github_token")
         assert hasattr(service, "github_repository_name")
         assert hasattr(service, "branch")
@@ -200,7 +200,7 @@ async def test_delete_file_returns_false_when_delete_fails(make_github_content_f
 # get_github_file_path — static helper
 def test_get_github_file_path_builds_correct_url():
     """get_github_file_path assembles the expected GitHub blob URL."""
-    url = FileService.get_github_file_path(
+    url = GithubFileService.get_github_file_path(
         repo_name="org/repo",
         branch="main",
         file_path="rti-templates/abc.md"

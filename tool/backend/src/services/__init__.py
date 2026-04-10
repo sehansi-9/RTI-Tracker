@@ -1,9 +1,9 @@
 from .rti_template_service import RTITemplateService
 from .auth_service import AuthService
-from .file_service import FileService
+from .github_file_service import GithubFileService
 
 __all__ = [
     "RTITemplateService",
     "AuthService",
-    "FileService"
+    "GithubFileService"
 ]

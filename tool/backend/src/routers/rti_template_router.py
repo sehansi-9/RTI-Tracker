@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Form, UploadFile, File
 from typing import Annotated, Optional
-from src.services import RTITemplateService, FileService
+from src.services import RTITemplateService, GithubFileService
 from src.repositories.db import SessionDep
 from src.models.response_models import RTITemplateListResponse, RTITemplateResponse, RTITemplateRequest
 from src.models import User, UserRole
@@ -8,10 +8,10 @@ from src.dependencies import RoleChecker
 
 router = APIRouter(prefix="/api/v1", tags=["RTI-Templates"])
 
-def get_file_service() -> FileService:
-    return FileService()
+def get_file_service() -> GithubFileService:
+    return GithubFileService()
 
-def get_rti_template_service(session: SessionDep, file_service: FileService = Depends(get_file_service)):
+def get_rti_template_service(session: SessionDep, file_service: GithubFileService = Depends(get_file_service)):
     return RTITemplateService(session, file_service)
 
 @router.get("/rti_templates", response_model=RTITemplateListResponse)

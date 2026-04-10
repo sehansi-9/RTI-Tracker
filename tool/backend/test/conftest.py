@@ -1,11 +1,12 @@
 # tests/conftest.py
 import pytest
 import uuid
+from aiohttp import ClientError
 from datetime import datetime, timezone
 from sqlmodel import SQLModel, Session, create_engine
 from src.models import RTITemplate
 from src.models.response_models import RTITemplateRequest
-from src.services.file_service import FileService
+from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from src.services.auth_service import AuthService
@@ -110,7 +111,7 @@ def make_github_content_file():
 
 @pytest.fixture
 def make_file_service():
-    """Returns a factory for mock FileService instances with configurable upload/delete behaviour."""
+    """Returns a factory for mock GithubFileService instances with configurable upload/delete behaviour."""
     def _factory(
         relative_path: str = "rti-templates/test-uuid.md",
         absolute_path: str = "https://github.com/org/repo/blob/main/rti-templates/test-uuid.md",

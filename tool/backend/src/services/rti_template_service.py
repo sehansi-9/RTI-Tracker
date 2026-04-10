@@ -1,5 +1,5 @@
 from uuid import uuid4
-from src.services.file_service import FileService
+from src.services.github_file_service import GithubFileService
 from src.models import RTITemplate, PaginationModel
 from src.models.response_models import RTITemplateListResponse, RTITemplateResponse, RTITemplateRequest
 from sqlmodel import select, func, Session
@@ -13,7 +13,7 @@ class RTITemplateService:
     This service is responsible for executing all RTI template operations.
     """
 
-    def __init__(self, session: Session, file_service: FileService):
+    def __init__(self, session: Session, file_service: GithubFileService):
         self.session = session
         self.file_service = file_service
 
@@ -73,9 +73,9 @@ class RTITemplateService:
             if relative_path == "" or absolute_path == "":
                 raise InternalServerException("[RTI SERVICE] Invalid path response from file service")
 
-            uploaded_file_path = relative_path  # mark that we have a committed GitHub file
+            uploaded_file_path = relative_path 
 
-            # template — store the relative GitHub path so the DB is self-contained
+            # template — store the relative path so the DB is self-contained
             rti_template = RTITemplate(
                 id=unique_id,
                 title=template_request.title,

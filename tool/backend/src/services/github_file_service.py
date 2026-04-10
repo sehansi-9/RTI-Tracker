@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class FileService:
+class GithubFileService:
     """
     This service is responsible for github file management throught REST APIs.
     """
@@ -56,7 +56,7 @@ class FileService:
             relative_path = content_file.path if content_file is not None else None
 
             if relative_path is not None:
-                absolute_path = FileService.get_github_file_path(
+                absolute_path = GithubFileService.get_github_file_path(
                     repo_name=self.github_repository_name,
                     branch=self.branch,
                     file_path=relative_path
