@@ -32,7 +32,7 @@ export function useEntityData<T>(
   }, [listFn, entityLabel, pageSize, searchTerm]);
 
   // Debounced search
-  const searchTimeout = useRef<NodeJS.Timeout>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
   const onSearch = (value: string) => {
     setSearchTerm(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -58,7 +58,10 @@ export function useEntityData<T>(
 
   useEffect(() => {
     loadData(1);
-  }, [listFn]);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [loadData]);
 
   return {
     data,

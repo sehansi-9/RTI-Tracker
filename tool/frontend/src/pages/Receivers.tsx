@@ -256,10 +256,9 @@ export function Receivers() {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact No</label>
             <input
-              type="tel"
               className="px-3 py-2 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-900"
               value={receiverForm.contactNo}
-              onChange={e => setReceiverForm(s => ({ ...s, contactNo: e.target.value.replace(/\D/g, '') }))}
+              onChange={e => setReceiverForm(s => ({ ...s, contactNo: e.target.value.replace(/[^0-9\-]/g, '') }))}
               placeholder="Phone number"
             />
           </div>

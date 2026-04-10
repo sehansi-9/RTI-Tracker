@@ -3,13 +3,13 @@ import { Button } from './Button';
 import { Pagination as PaginationComponent } from './Pagination';
 import { TableProps } from '../types/table';
 
-const TableHeader = ({ 
-  title, 
-  onAdd, 
-  searchTerm, 
-  onSearch 
-}: { 
-  title: string; 
+const TableHeader = ({
+  title,
+  onAdd,
+  searchTerm,
+  onSearch
+}: {
+  title: string;
   onAdd: () => void;
   searchTerm?: string;
   onSearch?: (v: string) => void;
@@ -52,7 +52,7 @@ export function DataTable<T>({
   pagination,
   onPageChange
 }: TableProps<T>) {
-  
+
   const getKey = (item: T): string => {
     if (typeof rowKey === 'function') return rowKey(item);
     return (item as any)[rowKey] as string;
@@ -82,7 +82,7 @@ export function DataTable<T>({
               <tr key={getKey(item)} className="hover:bg-gray-50/50">
                 {columns.map((col, i) => (
                   <td key={i} className={`px-4 py-3 ${col.className || ''}`}>
-                    {col.accessor ? String((item as any)[col.accessor] || '-') : '-'}
+                    {col.accessor ? String((item as any)[col.accessor] ?? '-') : '-'}
                   </td>
                 ))}
                 {(onEdit || onDelete) && (

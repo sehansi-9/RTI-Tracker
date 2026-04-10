@@ -18,7 +18,7 @@ export const receiversService = {
     let filtered = [...receivers];
     if (search) {
       const q = search.toLowerCase();
-      filtered = filtered.filter(r => 
+      filtered = filtered.filter(r =>
         r.institutionName?.toLowerCase().includes(q) ||
         r.positionName?.toLowerCase().includes(q) ||
         r.email?.toLowerCase().includes(q) ||
@@ -46,9 +46,9 @@ export const receiversService = {
     // mocking response for create
     const inst = institutions.find(i => i.id === payload.institutionId);
     const pos = positions.find(p => p.id === payload.positionId);
-    
+
     const newReceiver: Receiver = {
-      id: `rec-${Date.now()}`,
+      id: 'rec-' + crypto.randomUUID(),
       institutionId: payload.institutionId!,
       positionId: payload.positionId!,
       email: payload.email || null,
@@ -70,13 +70,13 @@ export const receiversService = {
     const inst = institutions.find(i => i.id === payload.institutionId);
     const pos = positions.find(p => p.id === payload.positionId);
 
-    receivers = receivers.map(r => 
-      r.id === id ? { 
-        ...r, 
-        ...payload, 
+    receivers = receivers.map(r =>
+      r.id === id ? {
+        ...r,
+        ...payload,
         institutionName: inst?.name || r.institutionName,
         positionName: pos?.name || r.positionName,
-        updatedAt: new Date() 
+        updatedAt: new Date()
       } : r
     );
     return receivers.find(r => r.id === id);
@@ -89,7 +89,7 @@ export const receiversService = {
 
   async listInstitutions(page: number, pageSize: number) {
     await sleep();
-    
+
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return {
