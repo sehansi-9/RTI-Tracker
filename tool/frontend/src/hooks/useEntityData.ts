@@ -61,7 +61,7 @@ export function useEntityData<T>(
     return () => {
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
     };
-  }, [loadData]);
+  }, [listFn]);
 
   return {
     data,
