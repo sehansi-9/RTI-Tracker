@@ -5,7 +5,7 @@
     operationId: createPosition
     description: Create a new position.
     tags:
-      - Position
+      - Positions
     security:
       - opaqueBearerToken: []
     requestBody:
@@ -41,7 +41,7 @@
     operationId: listPositions
     description: Returns a paginated list of all positions.
     tags:
-      - Position
+      - Positions
     security:
       - opaqueBearerToken: []
     parameters:
@@ -77,11 +77,11 @@
     operationId: getPositionById
     description: Returns a single position identified by its UUID.
     tags:
-      - Position
+      - Positions
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Templates.yaml#/TemplateId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "200":
         description: Position found and returned successfully.
@@ -107,11 +107,11 @@
     operationId: updatePosition
     description: Fully replaces a position.
     tags:
-      - Position
+      - Positions
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Templates.yaml#/TemplateId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     requestBody:
       required: true
       description: JSON request body with position metadata.
@@ -146,11 +146,11 @@
     operationId: deletePosition
     description: Permanently deletes a position by UUID. Returns 204 No Content on success. If the resource is linked with some other resources, cannot be deleted.
     tags:
-      - Position
+      - Positions
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Templates.yaml#/TemplateId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "204":
         description: Position deleted successfully. No content returned.
