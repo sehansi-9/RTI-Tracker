@@ -11,7 +11,7 @@ Unauthorized:
         timestamp: "2026-03-31T09:00:00Z"
 
 NotFound:
-  description: The requested entity was not found.
+  description: The requested resource was not found.
   content:
     application/json:
       schema:
@@ -19,7 +19,7 @@ NotFound:
       example:
         status: 404
         error: Not Found
-        message: "Entity was not found."
+        message: "Resource was not found"
         timestamp: "2026-03-31T09:00:00Z"
 
 UnprocessableEntity:
