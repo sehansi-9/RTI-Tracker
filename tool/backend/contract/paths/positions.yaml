@@ -105,7 +105,7 @@
   put:
     summary: Update a position
     operationId: updatePosition
-    description: Fully replaces a position.
+    description: Updates the name of a position.
     tags:
       - Positions
     security:
