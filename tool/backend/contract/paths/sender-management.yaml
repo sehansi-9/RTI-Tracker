@@ -86,7 +86,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Senders.yaml#/SenderId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "200":
         description: sender found and returned successfully.
@@ -119,7 +119,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Senders.yaml#/SenderId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     requestBody:
       required: true
       description: sender details
@@ -161,7 +161,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - $ref: "../components/parameters/Senders.yaml#/SenderId"
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "204":
         description: sender deleted successfully. No content returned.
