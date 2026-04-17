@@ -1,0 +1,175 @@
+/senders:
+  # Create a new sender 
+  post:
+    summary: Create a sender
+    operationId: createSender
+    description: Creates a new sender.
+    tags:
+      - Senders
+    security:
+      - opaqueBearerToken: []
+    requestBody:
+      required: true
+      description: JSON request body with sender metadata.
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/senders.yaml#/SenderRequest"
+    responses:
+      "201":
+        description: sender created successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/senders.yaml#/SenderResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              name: John Doe
+              email: example@gmail.com
+              address: 123 Main St, Colombo 01
+              contactNo: "0771234567"
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-03-31T09:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "422":
+        $ref: "../components/responses/Errors.yaml#/UnprocessableEntity"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # List all senders with pagination
+  get:
+    summary: List all senders
+    operationId: listSenders
+    description: Returns a paginated list of all senders.
+    tags:
+      - Senders
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/Pagination.yaml#/PageParam"
+      - $ref: "../components/parameters/Pagination.yaml#/PageSizeParam"
+    responses:
+      "200":
+        description: A paginated list of senders.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/senders.yaml#/SenderListResponse"
+            example:
+              data:
+                - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  name: John Doe
+                  email: example@gmail.com
+                  address: 123 Main St, Colombo 01
+                  contactNo: "0771234567"
+                  createdAt: "2026-03-31T09:00:00Z"
+                  updatedAt: "2026-03-31T09:00:00Z"
+              pagination:
+                page: 1
+                pageSize: 20
+                totalItems: 84
+                totalPages: 5
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+/senders/{id}:
+  # Get a single sender by ID
+  get:
+    summary: Get a sender by ID
+    operationId: getSenderById
+    description: Returns a single sender identified by its UUID.
+    tags:
+      - Senders
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    responses:
+      "200":
+        description: Sender found and returned successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/senders.yaml#/SenderResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              name: John Doe
+              email: example@gmail.com
+              address: 123 Main St, Colombo 01
+              contactNo: "0771234567"
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-03-31T09:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # Update an existing sender
+  put:
+    summary: Update a sender
+    operationId: updateSender
+    description: Fully replaces a sender.
+    tags:
+      - Senders
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    requestBody:
+      required: true
+      description: Sender details
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/senders.yaml#/SenderRequest"
+    responses:
+      "200":
+        description: Sender updated successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/senders.yaml#/SenderResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              name: John Doe
+              email: example@gmail.com
+              address: 123 Main St, Colombo 01
+              contactNo: "0771234567"
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-03-31T09:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "422":
+        $ref: "../components/responses/Errors.yaml#/UnprocessableEntity"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # Delete a sender
+  delete:
+    summary: Delete a sender
+    operationId: deleteSender
+    description: Permanently deletes a sender by UUID. Returns 204 No Content on success. If the resource is linked with other resources, it cannot be deleted.
+    tags:
+      - Senders
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    responses:
+      "204":
+        description: sender deleted successfully. No content returned.
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "409":
+        $ref: "../components/responses/Errors.yaml#/Conflict"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"

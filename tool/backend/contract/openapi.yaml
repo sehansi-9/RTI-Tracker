@@ -22,6 +22,12 @@ paths:
   /rti-templates/{id}:
     $ref: "./paths/rti-templates.yaml#/~1rti-templates~1{id}"
 
+  # sender paths
+  /senders:
+    $ref: "./paths/senders.yaml#/~1senders"
+  /senders/{id}:
+    $ref: "./paths/senders.yaml#/~1senders~1{id}"
+
   # institutions paths
   /institutions:
     $ref: "./paths/institutions.yaml#/~1institutions"
