@@ -1,7 +1,7 @@
 import logging
 from src.models import PaginationModel
 from src.models.response_models import InstitutionListResponse, InstitutionResponse
-from src.models.table_schemas import Institutions
+from src.models.table_schemas import Institution
 from src.core.exceptions import InternalServerException
 from sqlmodel import Session, select, func
 
@@ -26,11 +26,11 @@ class InstitutionService:
             offset = (page - 1) * page_size
 
             # fetch the records from the table
-            statement_records = select(Institutions).offset(offset).limit(page_size)
+            statement_records = select(Institution).offset(offset).limit(page_size)
             results = self.session.exec(statement_records).all()
             
             # fetch the total record count
-            statement_count = select(func.count()).select_from(Institutions)
+            statement_count = select(func.count()).select_from(Institution)
             total_items = self.session.exec(statement_count).one()
 
             # pagination response

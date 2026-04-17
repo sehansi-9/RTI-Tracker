@@ -1,4 +1,4 @@
-from .table_schemas import RTITemplate, Institutions
+from .table_schemas import RTITemplate, Institution
 from .common import User, PaginationModel, UserRole
 
 __all__ = [
@@ -6,5 +6,5 @@ __all__ = [
     "PaginationModel",
     "User",
     "UserRole",
-    "Institutions"
+    "Institution"
 ]
