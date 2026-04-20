@@ -17,7 +17,7 @@ class SenderService:
 
     # API
     # create sender
-    def create_sender(self, *, template_request: SenderRequest) -> SenderResponse:
+    def create_sender(self, *, sender_request: SenderRequest) -> SenderResponse:
         try:
             # generate a uuid
             unique_id = uuid4()
@@ -25,10 +25,10 @@ class SenderService:
             # create sender
             sender = Sender(
                 id=unique_id,
-                name=template_request.name,
-                email=template_request.email,
-                address=template_request.address,
-                contact_no=template_request.contact_no,
+                name=sender_request.name,
+                email=sender_request.email,
+                address=sender_request.address,
+                contact_no=sender_request.contact_no,
             )
 
             self.session.add(sender)
@@ -43,5 +43,5 @@ class SenderService:
             self.session.rollback()
             logger.error(f"[SENDER SERVICE] Error creating sender: {e}")
             raise InternalServerException(
-                f"[SENDER SERVICE] Failed to create sender: {e}"
+                "[SENDER SERVICE] Failed to create sender"
             ) from e

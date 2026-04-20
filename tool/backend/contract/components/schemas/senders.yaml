@@ -32,13 +32,13 @@ SenderResponse:
       type: string
       example: "0771234567"
       description: Contact number of the sender.
-    createdAt:
+    created_at:
       type: string
       format: date-time
       readOnly: true
       example: "2026-03-31T09:00:00Z"
       description: ISO 8601 timestamp of when the sender was created (UTC).
-    updatedAt:
+    updated_at:
       type: string
       format: date-time
       readOnly: true
