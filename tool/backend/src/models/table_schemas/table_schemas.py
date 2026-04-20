@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
-from sqlmodel import SQLModel, Field, func
+from sqlmodel import SQLModel, Field, func, CheckConstraint
 
 class RTITemplate(SQLModel, table=True):
     __tablename__ = "rti_templates"
@@ -39,3 +39,25 @@ class Position(SQLModel, table=True):
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
         description="ISO 8601 timestamp of when the position was last updated"
     )
+
+
+class Sender(SQLModel, table=True):
+    __tablename__ = "senders"
+
+    __table_args__ = (
+        CheckConstraint(
+            "email IS NOT NULL OR contactNo IS NOT NULL",
+            name="check_email_or_contact"
+        ),
+    )
+    # table fields
+    id: UUID = Field(primary_key=True, description="Unique identifier for the sender")
+    name: str = Field(index=True, description="Name of the sender")
+    email: Optional[str] = Field(None, description="Email of the sender")
+    address: Optional[str] = Field(None, description="Address of the sender")
+    contactNo: Optional[str] = Field(None, description="Contact number of the sender")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="ISO 8601 timestamp of when the sender was created")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="ISO 8601 timestamp of when the sender was last updated")
+    
+
+
