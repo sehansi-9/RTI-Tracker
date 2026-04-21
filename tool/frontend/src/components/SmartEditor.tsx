@@ -48,6 +48,8 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
     html = html.replace(/(?<!_|\{)_([^_\{}]+)_(?!_|\})/g, '<em>$1</em>');
 
     // 3. Handle lines and headings
+    if (!markdown || markdown.trim() === '') return '';
+
     html = html.split('\n').map(line => {
       if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
       if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
@@ -84,7 +86,7 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
     italics.forEach(italic => italic.replaceWith(`*${italic.textContent}*`));
 
     let text = tempDiv.textContent || '';
-    return text.replace(/\n{3,}/g, '\n\n').trim();
+    return text.replace(/\n{3,}/g, '\n\n');
   };
 
   const applyFormat = (command: string, value: string | undefined = undefined) => {
@@ -154,7 +156,10 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
 
   useEffect(() => {
     if (editorRef.current && initialMarkdown !== undefined) {
-      editorRef.current.innerHTML = parseMarkdownToHtml(initialMarkdown);
+      const currentMarkdown = serializeHtmlToMarkdown(editorRef.current.innerHTML);
+      if (initialMarkdown !== currentMarkdown) {
+        editorRef.current.innerHTML = parseMarkdownToHtml(initialMarkdown);
+      }
     }
   }, [initialMarkdown]);
 
