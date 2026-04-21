@@ -25,6 +25,13 @@ class BadRequestException(BaseAPIException):
     def __init__(self, message: str = "Bad request"):
         super().__init__(message)
 
+class ConflictException(BaseAPIException):
+    status_code = status.HTTP_409_CONFLICT
+    error_code = "Resource Conflict"
+    
+    def __init__(self, message: str = "A resource conflict occurred."):
+        super().__init__(message)
+
 class UnauthorizedException(BaseAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     error_code = "Unauthorized"
