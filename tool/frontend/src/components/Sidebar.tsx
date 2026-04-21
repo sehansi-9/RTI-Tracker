@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { FileCode, Users } from 'lucide-react';
+import { FileCode, Users, FileText } from 'lucide-react';
 
 export function Sidebar() {
   const navItems = [
@@ -12,6 +12,11 @@ export function Sidebar() {
       name: 'Receivers',
       path: '/receivers',
       icon: Users
+    },
+    {
+      name: 'Create RTI',
+      path: '/create',
+      icon: FileText
     }
   ];
 

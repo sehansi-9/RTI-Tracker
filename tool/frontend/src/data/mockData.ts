@@ -1,5 +1,5 @@
 import { Template } from '../types/rti';
-import { Institution, Position, Receiver } from '../types/db';
+import { Institution, Position, Receiver, Sender } from '../types/db';
 
 
 export const mockTemplates: Template[] = [
@@ -9,7 +9,7 @@ export const mockTemplates: Template[] = [
     description: 'Used for requesting pollution and emission data.',
     file: '',
     content:
-      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_name}}, {{receiver_position}}\n**From:** {{sender_name}}\n\nI am writing to request information under the Right to Information Act regarding environmental data...',
+      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_position}}, {{receiver_institution}}\n**From:** {{sender_name}}\n\nI am writing to request information under the Right to Information Act regarding environmental data...',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -19,7 +19,7 @@ export const mockTemplates: Template[] = [
     description: 'Used for requesting departmental budget details.',
     file: '',
     content:
-      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_name}}, {{receiver_position}}\n**From:** {{sender_name}}\n\nPlease provide the detailed budget allocation for the fiscal year...',
+      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_position}}, {{receiver_institution}}\n**From:** {{sender_name}}\n\nPlease provide the detailed budget allocation for the fiscal year...',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -126,4 +126,9 @@ export const mockReceivers: Receiver[] = [
   { id: 'rec-13', institutionId: 'inst-3', positionId: 'pos-5', email: 'rev13@gov.in', contactNo: '1013', address: 'Delhi', institutionName: 'Department of Revenue', positionName: 'Executive Engineer', createdAt: new Date(), updatedAt: new Date() },
   { id: 'rec-14', institutionId: 'inst-4', positionId: 'pos-1', email: 'mun14@gov.in', contactNo: '1014', address: 'Mumbai', institutionName: 'Municipal Corporation', positionName: 'Public Information Officer', createdAt: new Date(), updatedAt: new Date() },
   { id: 'rec-15', institutionId: 'inst-5', positionId: 'pos-1', email: 'ele15@gov.in', contactNo: '1015', address: 'Chennai', institutionName: 'State Electricity Board', positionName: 'Public Information Officer', createdAt: new Date(), updatedAt: new Date() },
+];
+
+export const mockSenders: Sender[] = [
+  { id: 's1', name: 'John Doe', email: 'john@example.com', address: '123 Main St, Colombo', contactNo: '077-1234567' },
+  { id: 's2', name: 'Jane Smith', email: 'jane@example.com', address: '456 Oak Rd, Kandy', contactNo: '071-7654321' }
 ];
