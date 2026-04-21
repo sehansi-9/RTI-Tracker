@@ -14,8 +14,8 @@ export function Sidebar() {
       icon: Users
     },
     {
-      name: 'Create RTI',
-      path: '/create',
+      name: 'RTI Requests',
+      path: '/rti-requests',
       icon: FileText
     }
   ];

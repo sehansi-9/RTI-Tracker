@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Templates } from './pages/Templates';
 import { Receivers } from './pages/Receivers';
-import { CreateRTI } from './pages/CreateRTI';
+import { RTIRequests } from './pages/RTIRequests';
 
 export function App() {
   return (
@@ -11,7 +11,7 @@ export function App() {
         <Route path="/" element={<Layout />}>
           <Route path="templates" element={<Templates />} />
           <Route path="receivers" element={<Receivers />} />
-          <Route path="create" element={<CreateRTI />} />
+          <Route path="rti-requests" element={<RTIRequests />} />
         </Route>
       </Routes>
     </BrowserRouter>

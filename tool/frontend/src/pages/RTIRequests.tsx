@@ -11,7 +11,7 @@ import { FieldError } from '../components/FieldError';
 import { Receiver, Sender } from '../types/db';
 import { mockSenders } from '../data/mockData';
 
-export function CreateRTI() {
+export function RTIRequests() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const editorRef = useRef<SmartEditorRef>(null);
