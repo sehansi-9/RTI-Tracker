@@ -10,27 +10,27 @@ class SenderResponse(BaseModel):
     # attributes
     id: UUID = Field(
         ...,
-        example="123e4567-e89b-12d3-a456-426614174000",
+        json_schema_extra={"example":"123e4567-e89b-12d3-a456-426614174000"},
         description="Unique identifier for the sender",
     )
-    name: str = Field(..., example="John Doe", description="Name of the sender")
+    name: str = Field(..., json_schema_extra={"example":"John Doe"}, description="Name of the sender")
     email: Optional[str] = Field(
-        None, example="example@gmail.com", description="Email of the sender"
+        None, json_schema_extra={"example":"example@gmail.com"}, description="Email of the sender"
     )
     address: Optional[str] = Field(
-        None, example="123 Main St, Colombo 01", description="Address of the sender"
+        None, json_schema_extra={"example":"123 Main St, Colombo 01"}, description="Address of the sender"
     )
     contact_no: Optional[str] = Field(
-        None, example="0771234567", description="Contact number of the sender"
+        None, json_schema_extra={"example":"0771234567"}, description="Contact number of the sender"
     )
     created_at: datetime = Field(
         ...,
-        example="2026-03-31T09:00:00Z",
+        json_schema_extra={"example":"2026-03-31T09:00:00Z"},
         description="ISO 8601 timestamp of when the sender was created",
     )
     updated_at: datetime = Field(
         ...,
-        example="2026-03-31T09:00:00Z",
+        json_schema_extra={"example":"2026-03-31T09:00:00Z"},
         description="ISO 8601 timestamp of when the sender was last updated",
     )
 
