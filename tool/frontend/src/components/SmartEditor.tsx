@@ -49,7 +49,6 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
 
     // 3. Handle lines and headings
     if (!markdown || markdown.trim() === '') return '';
-
     html = html.split('\n').map(line => {
       if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
       if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
@@ -61,14 +60,14 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
 
   const serializeHtmlToMarkdown = (html: string) => {
     let cleanHtml = html.replace(/<br\s*\/?>/gi, '\n');
-    cleanHtml = cleanHtml.replace(/<div[^>]*>/gi, '\n');
-    cleanHtml = cleanHtml.replace(/<\/div>/gi, '');
-    cleanHtml = cleanHtml.replace(/<p[^>]*>/gi, '\n');
-    cleanHtml = cleanHtml.replace(/<\/p>/gi, '');
-    cleanHtml = cleanHtml.replace(/<h1[^>]*>/gi, '\n# ');
-    cleanHtml = cleanHtml.replace(/<\/h1>/gi, '');
-    cleanHtml = cleanHtml.replace(/<h2[^>]*>/gi, '\n## ');
-    cleanHtml = cleanHtml.replace(/<\/h2>/gi, '');
+    cleanHtml = cleanHtml.replace(/<div[^>]*>/gi, '');
+    cleanHtml = cleanHtml.replace(/<\/div>/gi, '\n');
+    cleanHtml = cleanHtml.replace(/<p[^>]*>/gi, '');
+    cleanHtml = cleanHtml.replace(/<\/p>/gi, '\n');
+    cleanHtml = cleanHtml.replace(/<h1[^>]*>/gi, '# ');
+    cleanHtml = cleanHtml.replace(/<\/h1>/gi, '\n');
+    cleanHtml = cleanHtml.replace(/<h2[^>]*>/gi, '## ');
+    cleanHtml = cleanHtml.replace(/<\/h2>/gi, '\n');
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = cleanHtml;
@@ -86,7 +85,7 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
     italics.forEach(italic => italic.replaceWith(`*${italic.textContent}*`));
 
     let text = tempDiv.textContent || '';
-    return text.replace(/\n{3,}/g, '\n\n');
+    return text.replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '');
   };
 
   const applyFormat = (command: string, value: string | undefined = undefined) => {

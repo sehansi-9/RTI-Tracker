@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
-import { mockTemplates, mockSenders, mockReceivers } from '../data/mockData';
+import { mockTemplates } from '../data/mockData';
+import { db } from '../services/mockState';
 import { FileText, ArrowRight, Save, Send, ChevronLeft, User } from 'lucide-react';
 import { SmartEditor, SmartEditorRef } from '../components/SmartEditor';
 
@@ -44,8 +45,8 @@ export function CreateRTI() {
   };
 
   const placeholders = useMemo(() => {
-    const sender = mockSenders.find(s => s.id === formData.senderId);
-    const receiver = mockReceivers.find(r => r.id === formData.receiverId);
+    const sender = db.senders.find(s => s.id === formData.senderId);
+    const receiver = db.receivers.find(r => r.id === formData.receiverId);
 
     return {
       '{{date}}': formData.requestDate,
@@ -233,7 +234,7 @@ export function CreateRTI() {
 
                   <Select
                     label="Sender (Applicant)"
-                    options={mockSenders.map((s) => ({
+                    options={db.senders.map((s) => ({
                       value: s.id,
                       label: s.name
                     }))}
@@ -243,7 +244,7 @@ export function CreateRTI() {
 
                   <Select
                     label="Receiver (Institution)"
-                    options={mockReceivers.map((r) => ({
+                    options={db.receivers.map((r) => ({
                       value: r.id,
                       label: `${r.institutionName} - ${r.positionName}`
                     }))}
