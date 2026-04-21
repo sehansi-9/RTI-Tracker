@@ -7,12 +7,14 @@ import { mockTemplates } from '../data/mockData';
 import { db } from '../services/mockState';
 import { FileText, ArrowRight, Save, Send, ChevronLeft, User } from 'lucide-react';
 import { SmartEditor, SmartEditorRef } from '../components/SmartEditor';
+import { FieldError } from '../components/FieldError';
 
 export function CreateRTI() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const editorRef = useRef<SmartEditorRef>(null);
 
+  const [showErrors, setShowErrors] = useState(false);
   const [selectionMode, setSelectionMode] = useState<'none' | 'template'>('none');
   const [formData, setFormData] = useState({
     templateId: '',
@@ -197,14 +199,17 @@ export function CreateRTI() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className={`space-y-6 ${formData.templateId === 'scratch' ? 'md:col-span-2 max-w-2xl mx-auto w-full' : ''}`}>
-                <Input
-                  label="Request Title"
-                  placeholder="e.g., Annual Budget Report 2023"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
+                <div className="flex flex-col space-y-1">
+                  <Input
+                    label="Request Title"
+                    placeholder="e.g., Annual Budget Report 2023"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
+                  {showErrors && !formData.title && <FieldError error="Request title is required" />}
+                </div>
 
-                <div className="flex flex-col space-y-1.5">
+                <div className="flex flex-col space-y-1.5 text-left">
                   <label className="text-sm font-medium text-gray-700">
                     Description
                   </label>
@@ -232,25 +237,31 @@ export function CreateRTI() {
                     <User className="w-4 h-4" /> Entity Selection
                   </div>
 
-                  <Select
-                    label="Sender (Applicant)"
-                    options={db.senders.map((s) => ({
-                      value: s.id,
-                      label: s.name
-                    }))}
-                    value={formData.senderId}
-                    onChange={(e) => setFormData({ ...formData, senderId: e.target.value })}
-                  />
+                  <div className="flex flex-col space-y-1">
+                    <Select
+                      label="Sender (Applicant)"
+                      options={db.senders.map((s) => ({
+                        value: s.id,
+                        label: s.name
+                      }))}
+                      value={formData.senderId}
+                      onChange={(e) => setFormData({ ...formData, senderId: e.target.value })}
+                    />
+                    {showErrors && !formData.senderId && <FieldError error="Please select a sender" />}
+                  </div>
 
-                  <Select
-                    label="Receiver (Institution)"
-                    options={db.receivers.map((r) => ({
-                      value: r.id,
-                      label: `${r.institutionName} - ${r.positionName}`
-                    }))}
-                    value={formData.receiverId}
-                    onChange={(e) => setFormData({ ...formData, receiverId: e.target.value })}
-                  />
+                  <div className="flex flex-col space-y-1">
+                    <Select
+                      label="Receiver (Institution)"
+                      options={db.receivers.map((r) => ({
+                        value: r.id,
+                        label: `${r.institutionName} - ${r.positionName}`
+                      }))}
+                      value={formData.receiverId}
+                      onChange={(e) => setFormData({ ...formData, receiverId: e.target.value })}
+                    />
+                    {showErrors && !formData.receiverId && <FieldError error="Please select a receiver" />}
+                  </div>
 
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <p className="text-xs text-gray-500 italic">
@@ -267,9 +278,15 @@ export function CreateRTI() {
               </Button>
               <Button
                 onClick={() => {
-                  setStep(3);
+                  const isScratch = formData.templateId === 'scratch';
+                  const isValid = formData.title && (isScratch || (formData.senderId && formData.receiverId));
+                  if (isValid) {
+                    setStep(3);
+                    setShowErrors(false);
+                  } else {
+                    setShowErrors(true);
+                  }
                 }}
-                disabled={!formData.title || (formData.templateId !== 'scratch' && (!formData.senderId || !formData.receiverId))}
                 className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800"
               >
                 Continue to Finalize <ArrowRight className="w-4 h-4" />
