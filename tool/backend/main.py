@@ -4,8 +4,10 @@ from src.routers import rti_template_router, institution_router, position_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from src.core.exceptions import BaseAPIException, api_exception_handler
+from src.core.exceptions import BaseAPIException, api_exception_handler, validation_exception_handler
 from src.core.configs import settings
+from fastapi.exceptions import RequestValidationError
+
 
 # Configure logging to show INFO level messages
 logging.basicConfig(level=logging.INFO)
@@ -49,4 +51,5 @@ app.include_router(institution_router)
 app.include_router(position_router)
 app.include_router(sender_router)
 app.add_exception_handler(BaseAPIException, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, model_validator
 from typing import Optional
+from src.core.exceptions import BadRequestException
 
 
 class SenderRequest(BaseModel):
@@ -20,5 +21,5 @@ class SenderRequest(BaseModel):
     @model_validator(mode="after")
     def validate_email_or_contact(self):
         if not self.email and not self.contact_no:
-            raise ValueError("Either email or contact_no must be provided.")
+            raise BadRequestException("Either email or contact_no must be provided.")
         return self

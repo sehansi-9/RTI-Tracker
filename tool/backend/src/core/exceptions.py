@@ -2,6 +2,8 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime, timezone
+from typing import Any
+from fastapi.exceptions import RequestValidationError
 
 class ErrorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
@@ -9,6 +11,10 @@ class ErrorResponse(BaseModel):
     status: int = Field(..., description="HTTP status code")
     error: str = Field(..., description="Short error category")
     message: str = Field(..., description="Human-readable error detail")
+    details: list[dict[str, Any]] | None = Field(       
+        default=None,
+        description="Optional list of field-level validation errors"
+    )
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="ISO 8601 timestamp of when the error occurred (UTC)"
@@ -66,7 +72,7 @@ class NotFoundException(BaseAPIException):
         super().__init__(message)
 
 class UnprocessableEntityException(BaseAPIException):
-    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     error_code = "Unprocessable Entity"
     
     def __init__(self, message: str = "Validation failed."):
@@ -84,5 +90,42 @@ async def api_exception_handler(request: Request, exc: BaseAPIException):
     return JSONResponse(
         status_code=exc.status_code,
         content=exc.to_response().model_dump(mode="json")
+    )
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+
+    details = []
+
+    for err in exc.errors():
+        loc = err.get("loc", [])
+        field = ".".join(str(x) for x in loc if x != "body")
+
+        error_type = err.get("type")
+        message = err.get("msg")
+
+        if error_type == "string_type":
+            message = "Must be a string"
+        elif error_type == "int_type":
+            message = "Must be a number"
+        elif error_type == "value_error.email":
+            message = "Must be a valid email address"
+        elif error_type == "missing":
+            message = "This field is required"
+
+        details.append({
+            "field": field,
+            "message": message
+        })
+
+    response = ErrorResponse(       
+        status=422,
+        error="Validation Error",
+        message="Invalid request payload",
+        details=details,
+    )
+
+    return JSONResponse(
+        status_code=422,
+        content=response.model_dump(mode="json")
     )
     
