@@ -410,4 +410,52 @@ async def test_delete_rti_template_generic_exception(in_memory_db, make_file_ser
         await service.delete_rti_template(template_id=str(template_id))
     
     fs.recreate_file.assert_called_once_with(template_id=template_id, content=b"Content")
+
+# get_rti_template_by_id tests
+@pytest.mark.asyncio
+async def test_get_rti_template_by_id_success(in_memory_db, make_file_service):
+    """Happy path: template is retrieved by ID."""
+    existing_template = in_memory_db.exec(select(RTITemplate)).first()
+    template_id = str(existing_template.id)
+
+    service = RTITemplateService(session=in_memory_db, file_service=make_file_service())
+    result = service.get_rti_template_by_id(template_id=template_id)
+
+    assert isinstance(result, RTITemplateResponse)
+    assert result.id == existing_template.id
+    assert result.title == existing_template.title
+
+@pytest.mark.asyncio
+async def test_get_rti_template_by_id_invalid_uuid(in_memory_db, make_file_service):
+    """BadRequestException is raised for invalid UUID strings."""
+    service = RTITemplateService(session=in_memory_db, file_service=make_file_service())
+    
+    with pytest.raises(BadRequestException) as exc:
+        service.get_rti_template_by_id(template_id="not-a-uuid")
+    assert "Invalid UUID format" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_get_rti_template_by_id_not_found(in_memory_db, make_file_service):
+    """NotFoundException is raised if the ID doesn't exist."""
+    service = RTITemplateService(session=in_memory_db, file_service=make_file_service())
+    random_id = str(uuid.uuid4())
+
+    with pytest.raises(NotFoundException) as exc:
+        service.get_rti_template_by_id(template_id=random_id)
+    assert "not found" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_get_rti_template_by_id_internal_error(in_memory_db, make_file_service, monkeypatch):
+    """InternalServerException is raised on generic failure."""
+    existing_template = in_memory_db.exec(select(RTITemplate)).first()
+    template_id = str(existing_template.id)
+
+    service = RTITemplateService(session=in_memory_db, file_service=make_file_service())
+    
+    # Mock session.get to raise an exception
+    monkeypatch.setattr(in_memory_db, "get", MagicMock(side_effect=Exception("DB breakdown")))
+    
+    with pytest.raises(InternalServerException) as exc:
+        service.get_rti_template_by_id(template_id=template_id)
+    assert "Failed to read RTI template" in str(exc.value)
     

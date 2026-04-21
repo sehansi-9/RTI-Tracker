@@ -56,6 +56,31 @@ class RTITemplateService:
             raise InternalServerException("Failed to fetch RTI templates from database.") from e
 
     # API
+    def get_rti_template_by_id(
+        self,
+        *,
+        template_id
+    ) -> RTITemplateResponse:
+        try:
+            try:
+                target_id = UUID(template_id) if isinstance(template_id, str) else template_id
+            except ValueError:
+                raise BadRequestException(f"Invalid UUID format: {template_id}")
+
+            rti_template = self.session.get(RTITemplate, target_id)
+
+            if not rti_template:
+                raise NotFoundException(f"RTI Template with id {template_id} not found.")
+
+            return RTITemplateResponse.model_validate(rti_template)
+
+        except (BadRequestException, NotFoundException):
+            raise
+        except Exception as e:
+            logger.error(f"[RTI SERVICE] Error reading RTI template: {e}")
+            raise InternalServerException(f"Failed to read RTI template: {e}") from e
+
+    # API
     async def create_rti_template(
         self,
         *,
@@ -206,7 +231,6 @@ class RTITemplateService:
 
         except (BadRequestException, NotFoundException, ConflictException):
             raise
-
         except Exception as e:
             self.session.rollback()
             if old_file_data:

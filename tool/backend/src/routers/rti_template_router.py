@@ -37,6 +37,14 @@ async def create_rti_templates_endpoint(
     response = await service.create_rti_template(template_request=template_request)
     return response
 
+@router.get("/rti_templates/{id}", response_model=RTITemplateResponse)
+def get_rti_template_by_id_endpoint(
+    id: Annotated[str, Path(title="ID of the RTI Template")],
+    service: RTITemplateService = Depends(get_rti_template_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
+):
+    return service.get_rti_template_by_id(template_id=id)
+
 @router.put("/rti_templates/{id}")
 async def update_rti_template_endpoint(
     id: Annotated[str, Path(title="ID of the RTI Template")],
