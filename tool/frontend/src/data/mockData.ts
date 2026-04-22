@@ -9,7 +9,7 @@ export const mockTemplates: Template[] = [
     description: 'Used for requesting pollution and emission data.',
     file: 'environmental_data_request.md',
     content:
-      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiverPosition}}, {{receiverInstitution}}\n**From:** {{senderName}}\n\nI am writing to request information under the Right to Information Act regarding environmental data...',
+      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_position}}, {{receiver_institution}}\n**From:** {{sender_name}}\n\nI am writing to request information under the Right to Information Act regarding environmental data...',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -19,7 +19,7 @@ export const mockTemplates: Template[] = [
     description: 'Used for requesting departmental budget details.',
     file: 'budget_allocation_inquiry.md',
     content:
-      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiverPosition}}, {{receiverInstitution}}\n**From:** {{senderName}}\n\nPlease provide the detailed budget allocation for the fiscal year...',
+      '# Right to Information Request\n\n**Date:** {{date}}\n**To:** {{receiver_position}}, {{receiver_institution}}\n**From:** {{sender_name}}\n\nPlease provide the detailed budget allocation for the fiscal year...',
     createdAt: new Date(),
     updatedAt: new Date()
   },

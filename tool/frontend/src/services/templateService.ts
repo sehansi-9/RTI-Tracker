@@ -1,25 +1,9 @@
 import { Template } from '../types/rti';
 import { db } from './mockState';
 import { RTITemplateDB } from '../types/db';
+import { toFormData } from '../utils/formUtils';
 
 const TEMPLATE_BASE_URL = 'https://storage.rti.api/templates/';
-
-/**
- * Helper to convert template fields and content into Multipart FormData.
- */
-const toFormData = (title?: string, description?: string, content?: string): FormData => {
-  const formData = new FormData();
-  if (title) formData.append('title', title);
-  if (description) formData.append('description', description);
-
-  if (content !== undefined) {
-    // Convert content string to physical Markdown file for GitHub storage
-    const fileBlob = new Blob([content], { type: 'text/markdown' });
-    const fileName = `${(title || 'template').replace(/\s+/g, '_')}.md`;
-    formData.append('file', fileBlob, fileName);
-  }
-  return formData;
-};
 
 const SLEEP_MS = 600;
 const sleep = (ms = SLEEP_MS) => new Promise(resolve => setTimeout(resolve, ms));
@@ -75,7 +59,14 @@ export const templateService = {
    * Create a new RTI template
    */
   createRTITemplate: async (template: Omit<Template, 'id'>): Promise<Template> => {
-    const formData = toFormData(template.title, template.description, template.content);
+    const contentFile = template.content 
+      ? new File([template.content], 'template.md', { type: 'text/markdown' })
+      : undefined;
+
+    const formData = toFormData(
+      { title: template.title, description: template.description },
+      contentFile
+    );
 
     await sleep(800);
 
@@ -121,7 +112,14 @@ export const templateService = {
    * Update an existing RTI template
    */
   updateRTITemplate: async (id: string, updates: Partial<Template>): Promise<Template> => {
-    const formData = toFormData(updates.title, updates.description, updates.content);
+    const contentFile = updates.content 
+      ? new File([updates.content], 'template.md', { type: 'text/markdown' })
+      : undefined;
+
+    const formData = toFormData(
+      { title: updates.title, description: updates.description },
+      contentFile
+    );
 
     await sleep(800);
 

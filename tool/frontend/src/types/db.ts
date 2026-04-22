@@ -52,6 +52,17 @@ export interface RTIRequest {
   senderId: string;
   receiverId: string;
   rtiTemplateId: string;
+  institutionName: string;
+  positionName: string;
+  senderName: string;
+  senderEmail?: string;
+  senderAddress?: string;
+  senderContactNo?: string;
+  receiverEmail?: string;
+  receiverContactNo?: string;
+  receiverAddress?: string;
+  rtiTemplateTitle?: string;
+  rtiTemplateFile?: string;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -68,26 +79,4 @@ export interface RTIStatusHistory {
   file: string | null; // Receipt/Attachment link
   createdAt: Date;
   updatedAt: Date;
-}
-
-// UI helper types
-export interface RTIRequestRow extends RTIRequest {
-  receiverInstitution: string;
-  receiverPosition: string;
-}
-
-export interface RTIRequestDetails {
-  request: RTIRequestRow & {
-    senderName: string;
-    senderEmail?: string;
-    senderAddress?: string;
-    senderContactNo?: string;
-    receiverEmail?: string;
-    receiverContactNo?: string;
-    receiverAddress?: string;
-    rtiTemplateTitle?: string;
-    rtiTemplateFile?: string;
-  };
-  history: RTIStatusHistory[];
-  content: string;
 }
