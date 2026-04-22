@@ -330,7 +330,7 @@ export function Receivers() {
                     const sanitized = val.replace(/(?!^)\+/g, '');
                     field.onChange(sanitized);
                   }}
-                  placeholder="07xxxxxxxx or +94xxxxxxxxx"
+                  placeholder="0xxxxxxxx or +94xxxxxxxxx"
                 />
               )}
             />

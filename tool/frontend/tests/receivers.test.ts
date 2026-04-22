@@ -93,7 +93,7 @@ test.describe('Receivers Management', () => {
     await page.getByRole('button', { name: 'New Receiver' }).click();
 
     const emailInput = page.getByPlaceholder('receiver@example.com');
-    const phoneInput = page.getByPlaceholder('07xxxxxxxx or +94xxxxxxxxx');
+    const phoneInput = page.getByPlaceholder('0xxxxxxxx or +94xxxxxxxxx');
     const submitBtn = page.getByRole('button', { name: 'Create Receiver' });
 
     // 1. Try to submit empty 
