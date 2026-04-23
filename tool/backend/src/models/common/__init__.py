@@ -1,9 +1,8 @@
-from .common import PaginationModel, ErrorResponse
+from .common import PaginationModel
 from .auth import User, UserRole
 
 __all__ = [
     "PaginationModel",
-    "ErrorResponse",
     "User",
     "UserRole"
 ]
