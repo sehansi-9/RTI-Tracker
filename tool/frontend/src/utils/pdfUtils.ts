@@ -72,21 +72,65 @@ export const generateRTIPDF = async (data: PDFData): Promise<{ blob: Blob; fileN
   const contentWidth = 160;
   let cursorY = 25;
 
-  // Header
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  cursorY += 15;
 
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  const titleLines = doc.splitTextToSize(title.toUpperCase(), contentWidth);
-  doc.text(titleLines.join('\n'), 105, cursorY, { align: 'center' });
-  cursorY += (titleLines.length * 8) + 12;
+  // Helper to render text with markdown support (bold, italic)
+  const renderRichText = (text: string, x: number, y: number, maxWidth: number): number => {
+    const tokens: { text: string; style: string }[] = [];
+    
+    // Split by all possible markdown markers, preserving them
+    const segments = text.split(/(\*\*\*|___|\*\*|__|\*|_)/);
+    
+    let isBold = false;
+    let isItalic = false;
+    
+    segments.forEach(seg => {
+      if (seg === '***' || seg === '___') {
+        isBold = !isBold;
+        isItalic = !isItalic;
+      } else if (seg === '**' || seg === '__') {
+        isBold = !isBold;
+      } else if (seg === '*' || seg === '_') {
+        isItalic = !isItalic;
+      } else if (seg) {
+        let style = 'normal';
+        if (isBold && isItalic) style = 'bolditalic';
+        else if (isBold) style = 'bold';
+        else if (isItalic) style = 'italic';
+        
+        tokens.push({ text: seg, style });
+      }
+    });
 
-  // Body
-  doc.setFontSize(11);
-  doc.setLineHeightFactor(1.4);
+    let currentX = x;
+    let currentY = y;
+    const lineHeight = 7;
+
+    tokens.forEach(token => {
+      doc.setFont('helvetica', token.style);
+      
+      const words = token.text.split(/(\s+)/);
+      words.forEach(word => {
+        if (word === '') return;
+        const safeWord = word.replace(/[\u00A0\u1680\u180e\u2000-\u200b\u202f\u205f\u3000\ufeff]/g, ' ');
+        const wordWidth = doc.getTextWidth(safeWord);
+        
+        if (currentX + wordWidth > x + maxWidth && safeWord.trim().length > 0) {
+          currentX = x;
+          currentY += lineHeight;
+          if (currentY > 270) {
+            doc.addPage();
+            currentY = 25;
+            doc.setFont('helvetica', token.style);
+          }
+        }
+        
+        doc.text(safeWord, currentX, currentY);
+        currentX += wordWidth;
+      });
+    });
+
+    return currentY;
+  };
 
   const lines = finalMarkdown.split('\n');
   lines.forEach(line => {
@@ -101,34 +145,18 @@ export const generateRTIPDF = async (data: PDFData): Promise<{ blob: Blob; fileN
       cursorY = 25;
     }
 
-    const isBoldLabel = line.includes(':**');
-    const cleanLine = line.replace(/\*\*|\*/g, '').replace(/^#+\s*/, '').trim();
-    const safeLine = cleanLine.replace(/[\u00A0\u1680\u180e\u2000-\u200b\u202f\u205f\u3000\ufeff]/g, ' ').replace(/\s+/g, ' ');
-
-    if (isBoldLabel) {
-      const parts = safeLine.split(/:(.*)/s);
-      const label = (parts[0] + ':').trim();
-      const value = (parts[1] || '').trim();
-
+    if (line.startsWith('#')) {
       doc.setFont('helvetica', 'bold');
-      doc.text(label, margin, cursorY);
-
-      const labelWidth = doc.getTextWidth(label + ' ');
-      doc.setFont('helvetica', 'normal');
-
-      const wrappedValue = doc.splitTextToSize(value, contentWidth - labelWidth);
-      doc.text(wrappedValue.join('\n'), margin + labelWidth, cursorY);
-      cursorY += (wrappedValue.length * 7) + 2;
-    } else {
-      const isHeader = line.startsWith('#');
-      doc.setFont('helvetica', isHeader ? 'bold' : 'normal');
-      if (isHeader) doc.setFontSize(13);
-
-      const wrapped = doc.splitTextToSize(safeLine, contentWidth);
-      doc.text(wrapped.join('\n'), margin, cursorY);
-
-      cursorY += (wrapped.length * 7) + 2;
+      const level = (line.match(/^#+/) || ['#'])[0].length;
+      doc.setFontSize(level === 1 ? 14 : 12);
+      const cleanHeader = line.replace(/^#+\s*/, '');
+      doc.text(cleanHeader, margin, cursorY);
+      cursorY += 10;
       doc.setFontSize(11);
+    } else {
+      doc.setFontSize(11);
+      cursorY = renderRichText(line.trim(), margin, cursorY, contentWidth);
+      cursorY += 5; // Paragraph spacing
     }
   });
 
