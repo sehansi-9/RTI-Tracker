@@ -76,7 +76,7 @@ export interface RTIStatusHistory {
   description: string;
   entryTime: Date;
   exitTime: Date | null;
-  file: string | null; // Receipt/Attachment link
+  files: string[]; // Receipt/Attachment links
   createdAt: Date;
   updatedAt: Date;
 }

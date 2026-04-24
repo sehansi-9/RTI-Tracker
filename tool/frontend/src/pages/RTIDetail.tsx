@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, FileText, CheckCircle, Upload, Clock, User, Building2, Mail } from 'lucide-react';
+import { ChevronLeft, FileText, CheckCircle, Upload, Clock, User, Building2, Mail, X } from 'lucide-react';
 import { rtiRequestsService } from '../services/rtiRequestsService';
 import { RTIRequest, RTIStatusHistory } from '../types/db';
 import { Button } from '../components/Button';
@@ -23,7 +23,7 @@ export function RTIDetail() {
           rtiRequestsService.getHistory(id)
         ]);
         setRequest(reqData);
-        setHistory(historyData);
+        setHistory(historyData.sort((a, b) => new Date(b.entryTime).getTime() - new Date(a.entryTime).getTime()));
       } catch (e) {
         toast.error('Failed to load RTI details');
         navigate('/rti-requests');
@@ -33,6 +33,20 @@ export function RTIDetail() {
     };
     fetchAllData();
   }, [id, navigate]);
+
+  const handleDeleteFile = async (historyId: string, fileUrl: string) => {
+    try {
+      await rtiRequestsService.deleteHistoryFile(historyId, fileUrl);
+      setHistory(prev => prev.map(h => 
+        h.id === historyId 
+          ? { ...h, files: h.files.filter(f => f !== fileUrl) }
+          : h
+      ));
+      toast.success('File deleted');
+    } catch (e) {
+      toast.error('Failed to delete file');
+    }
+  };
 
   if (isLoading || !request) {
     return (
@@ -190,26 +204,52 @@ export function RTIDetail() {
                           <h4 className="text-sm font-bold text-gray-900">{h.statusId}</h4>
                           <span className="text-[10px] font-medium text-gray-400">{new Date(h.entryTime).toLocaleString()}</span>
                         </div>
-                        <p className="text-sm text-gray-600">{h.description || 'No additional details provided.'}</p>
-                        <div className="flex items-center gap-4 pt-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${h.direction === 'outgoing' ? 'bg-orange-50 text-orange-700' : 'bg-green-50 text-green-700'}`}>
+                        
+                        <div className="flex items-center gap-3 py-1">
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-widest border ${h.direction === 'outgoing' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
                             {h.direction}
                           </span>
-                          {h.file && (
-                            <button
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = h.file!;
-                                link.download = h.file!.split('/').pop() || 'document.pdf';
-                                link.click();
-                              }}
-                              className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100"
-                            >
-                              <FileText className="w-3 h-3" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">Download PDF</span>
-                            </button>
-                          )}
                         </div>
+
+                        <p className="text-sm text-gray-600 leading-relaxed">{h.description || 'No additional details provided.'}</p>
+                        
+                        {h.files && h.files.length > 0 && (
+                          <div className="pt-3 space-y-2">
+                            <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Attachments</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {h.files.map((file, fIdx) => (
+                                <div
+                                  key={fIdx}
+                                  className="flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                                >
+                                  <button
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = file;
+                                      link.download = file.split('/').pop() || 'document.pdf';
+                                      link.click();
+                                    }}
+                                    className="flex items-center gap-1.5 hover:text-blue-900"
+                                  >
+                                    <FileText className="w-3 h-3 text-blue-900" />
+                                    <span className="text-[10px] font-bold">
+                                      {file.split('/').pop() || `File ${fIdx + 1}`}
+                                    </span>
+                                  </button>
+                                  {idx === 0 && h.statusId !== 'CREATED' && (
+                                    <button
+                                      onClick={() => handleDeleteFile(h.id, file)}
+                                      className="ml-1 p-0.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                      title="Delete file"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

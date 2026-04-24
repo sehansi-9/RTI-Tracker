@@ -5,20 +5,23 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const getStatusStyles = (status: string) => {
-    const s = status.toLowerCase();
-    if (s.includes('sent') || s.includes('waiting')) {
+    const s = status.toUpperCase();
+    if (s === 'CREATED' || s === 'DELIVERY' || s === 'APPROVAL' || s === 'IN PROGRESS') {
       return 'bg-blue-50 text-blue-700 border-blue-100';
     }
-    if (s.includes('received') || s.includes('completed')) {
+    if (s === 'ACCEPTED' || s === 'COMPLETED' || s === 'ACKNOWLEDGE') {
       return 'bg-green-50 text-green-700 border-green-100';
     }
-    if (s.includes('appealed') || s.includes('danger') || s.includes('error')) {
+    if (s === 'REJECTION') {
       return 'bg-red-50 text-red-700 border-red-100';
     }
-    if (s.includes('pending') || s.includes('draft')) {
+    if (s === 'APPEAL') {
+      return 'bg-orange-50 text-orange-700 border-orange-100';
+    }
+    if (s === 'PENDING' || s === 'DRAFT') {
       return 'bg-gray-50 text-gray-700 border-gray-100';
     }
-    return 'bg-orange-50 text-orange-700 border-orange-100';
+    return 'bg-blue-50 text-blue-700 border-blue-100'; // Default to blue for others
   };
 
   return (

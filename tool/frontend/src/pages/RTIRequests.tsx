@@ -165,7 +165,8 @@ export function RTIRequests() {
         receiverId: formData.receiverId,
         rtiTemplateId: formData.templateId === 'scratch' ? '' : formData.templateId,
         content: finalMarkdown,
-        file: pdfFile
+        file: pdfFile,
+        status: 'In Process'
       });
 
       toast.success(`RTI request ${isDispatch ? 'dispatched' : 'saved'} and PDF downloaded`);

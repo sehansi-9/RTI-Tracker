@@ -1,4 +1,4 @@
-import { mockReceivers, mockInstitutions, mockPositions, mockSenders, mockTemplates } from '../data/mockData';
+import { mockReceivers, mockInstitutions, mockPositions, mockSenders, mockTemplates, mockRTIRequests, mockStatusHistories } from '../data/mockData';
 import { Institution, Position, Receiver, RTIRequest, RTITemplateDB, RTIStatusHistory, Sender } from '../types/db';
 
 const TEMPLATE_BASE_URL = 'https://storage.rti.api/templates/';
@@ -8,8 +8,8 @@ class MockDb {
   institutions: Institution[] = [...mockInstitutions];
   positions: Position[] = [...mockPositions];
   senders: Sender[] = [...mockSenders];
-  rtiRequests: RTIRequest[] = [];
-  statusHistories: RTIStatusHistory[] = [];
+  rtiRequests: RTIRequest[] = [...mockRTIRequests];
+  statusHistories: RTIStatusHistory[] = [...mockStatusHistories];
   
   templates: RTITemplateDB[] = mockTemplates.map(t => ({
     id: t.id,

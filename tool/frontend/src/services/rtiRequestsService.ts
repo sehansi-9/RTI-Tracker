@@ -108,7 +108,7 @@ export const rtiRequestsService = {
       receiverAddress: receiver?.address || '',
       rtiTemplateTitle: template?.title || '-',
       rtiTemplateFile: template?.file || '',
-      status: 'Sent',
+      status: payload.status || 'In Process',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -119,12 +119,12 @@ export const rtiRequestsService = {
     const history: RTIStatusHistory = {
       id: crypto.randomUUID(),
       rtiRequestId: newRequest.id,
-      statusId: 'Dispatched',
+      statusId: 'CREATED',
       direction: 'outgoing',
-      description: 'Initial RTI request sent.',
+      description: 'Initial RTI Request created.',
       entryTime: new Date(),
       exitTime: null,
-      file: fileLink,
+      files: fileLink ? [fileLink] : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -141,5 +141,13 @@ export const rtiRequestsService = {
     await sleep();
     db.rtiRequests = db.rtiRequests.filter(r => r.id !== id);
     db.statusHistories = db.statusHistories.filter(h => h.rtiRequestId !== id);
+  },
+
+  async deleteHistoryFile(historyId: string, fileUrl: string) {
+    await sleep();
+    const history = db.statusHistories.find(h => h.id === historyId);
+    if (history) {
+      history.files = history.files.filter(f => f !== fileUrl);
+    }
   }
 };
