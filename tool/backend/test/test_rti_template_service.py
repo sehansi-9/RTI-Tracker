@@ -210,6 +210,19 @@ async def test_create_rti_template_rolls_back_session_on_failure(rti_template_db
 
     rollback_mock.assert_called_once()
     
+@pytest.mark.asyncio
+async def test_create_rti_template_duplicate_title(rti_template_db, monkeypatch, make_file_service, make_template_request):
+    """IntegrityError (duplicate title) during create raises ConflictException."""
+    fs = make_file_service()
+    service = RTITemplateService(session=rti_template_db, file_service=fs)
+    
+    monkeypatch.setattr(rti_template_db, "commit", MagicMock(side_effect=IntegrityError("Conflict", None, None)))
+    
+    with pytest.raises(ConflictException) as exc:
+        await service.create_rti_template(template_request=make_template_request(title="Duplicate Title"))
+    
+    assert "already exists" in str(exc.value)
+    fs.delete_file.assert_called_once()
 
 # update_rti_template tests
 @pytest.mark.asyncio
@@ -325,6 +338,42 @@ async def test_update_rti_template_rolls_back_file_on_db_failure(rti_template_db
     
     with pytest.raises(InternalServerException):
         await service.update_rti_template(template_request=request)
+    
+    # Verify update_file was called with the OLD content and the NEW sha to restore it
+    fs.update_file.assert_called_with(
+        file_path=f"rti-templates/{existing_template.id}.md",
+        content=old_content,
+        sha=new_sha,
+        message=f"Rollback: restore previous version of rti-templates/{existing_template.id}.md"
+    )
+
+@pytest.mark.asyncio
+async def test_update_rti_template_duplicate_title(rti_template_db, monkeypatch, make_file_service, make_template_request):
+    """IntegrityError (duplicate title) during update triggers rollback, restores file, and raises ConflictException."""
+    existing_template = rti_template_db.exec(select(RTITemplate)).first()
+    template_id = str(existing_template.id)
+    
+    old_content = b"# Old Content"
+    old_sha = "old-sha"
+    new_sha = "new-sha"
+    
+    fs = make_file_service()
+    fs.get_file = AsyncMock(side_effect=[
+        {"content": old_content, "sha": old_sha}, # first call (old)
+        {"content": b"# New Content", "sha": new_sha} # second call (new)
+    ])
+    
+    service = RTITemplateService(session=rti_template_db, file_service=fs)
+    
+    # Mock commit to raise IntegrityError
+    monkeypatch.setattr(rti_template_db, "commit", MagicMock(side_effect=IntegrityError("Conflict", None, None)))
+    
+    request = make_template_request(id=template_id, title="Duplicate Title")
+    
+    with pytest.raises(ConflictException) as exc:
+        await service.update_rti_template(template_request=request)
+    
+    assert "already exists" in str(exc.value)
     
     # Verify update_file was called with the OLD content and the NEW sha to restore it
     fs.update_file.assert_called_with(

@@ -137,6 +137,10 @@ class RTITemplateService:
             # remove the orphaned file from GitHub if the DB commit failed
             if uploaded_file_path:
                 await self.file_service.delete_file(file_path=uploaded_file_path)
+            if isinstance(e, IntegrityError):
+                logger.error(f"[RTI SERVICE] Duplicate title error creating RTI template: {e}")
+                raise ConflictException("RTI Template with this title already exists.") from e
+
             logger.error(f"[RTI SERVICE] Error creating RTI template: {e}")
             raise InternalServerException(f"[RTI SERVICE] Failed to create RTI template: {e}") from e
 
@@ -197,7 +201,7 @@ class RTITemplateService:
 
             return RTITemplateResponse.model_validate(rti_template)
 
-        except (InternalServerException, BadRequestException, NotFoundException):
+        except (InternalServerException, BadRequestException, NotFoundException, ConflictException):
             raise
         except Exception as e:
             self.session.rollback()
@@ -215,6 +219,10 @@ class RTITemplateService:
                     logger.info(f"[RTI SERVICE] Compensating transaction: restored {file_path} on github")
                 except Exception as ex:
                     logger.error(f"[RTI SERVICE] Compensating transaction failed — could not restore {file_path}: {ex}")
+
+            if isinstance(e, IntegrityError):
+                logger.error(f"[RTI SERVICE] Duplicate title error updating RTI template: {e}")
+                raise ConflictException("RTI Template with this title already exists.") from e
 
             logger.error(f"[RTI SERVICE] Error updating RTI template: {e}")
             raise InternalServerException(f"[RTI SERVICE] Failed to update RTI template: {e}") from e
