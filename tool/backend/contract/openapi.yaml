@@ -40,6 +40,12 @@ paths:
   /positions/{id}:
     $ref: "./paths/positions.yaml#/~1positions~1{id}"
 
+  # rti request paths
+  /rti-requests:
+    $ref: "./paths/rti-requests.yaml#/~1rti-requests"
+  /rti-requests/{id}:
+    $ref: "./paths/rti-requests.yaml#/~1rti-requests~1{id}"
+    
   # receivers paths
   /receivers:
     $ref: "./paths/receivers.yaml#/~1receivers"
@@ -57,6 +63,12 @@ components:
       $ref: "./components/schemas/RTITemplates.yaml#/RTITemplateResponse"
     RTITemplateListResponse:
       $ref: "./components/schemas/RTITemplates.yaml#/RTITemplateListResponse"
+    RTIRequestRequest:
+      $ref: "./components/schemas/RTIRequests.yaml#/RTIRequestRequest"
+    RTIRequestResponse:
+      $ref: "./components/schemas/RTIRequests.yaml#/RTIRequestResponse"
+    RTIRequestListResponse:
+      $ref: "./components/schemas/RTIRequests.yaml#/RTIRequestListResponse"
     Pagination:
       $ref: "./components/schemas/common.yaml#/Pagination"
     ErrorResponse:

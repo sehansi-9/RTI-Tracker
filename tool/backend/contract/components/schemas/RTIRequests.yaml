@@ -1,0 +1,84 @@
+RTIRequestRequest:
+  type: object
+  properties:
+    title:
+      type: string
+      example: Request for Budget Information 2024
+      description: Human-readable title for the RTI request.
+    description:
+      type: string
+      example: Requesting documents related to the 2024 healthcare budget regarding
+        medical supplies.
+      description: Detailed description of the RTI request.
+    senderId:
+      type: string
+      format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      description: ID of the sender making the request.
+    receiverId:
+      type: string
+      format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      description: ID of the receiver (institution/official) the request is sent to.
+    rtiTemplateId:
+      type: string
+      format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      description: Optional ID of the RTI template used to generate this request.
+
+RTIRequestResponse:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      description: Unique identifier of the RTI request.
+    title:
+      type: string
+      example: Request for Budget Information 2024
+      description: Title of the RTI request.
+    description:
+      type: string
+      example: Requesting documents related to the 2024 healthcare budget regarding
+        medical supplies.
+      description: Description of the RTI request.
+    senderId:
+      type: string
+      format: uuid
+      example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      description: ID of the sender.
+    receiverId:
+      type: string
+      format: uuid
+      example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+      description: ID of the receiver.
+    rtiTemplateId:
+      type: string
+      format: uuid
+      example: b9d02c84-8f1b-4835-9730-84a28f804561
+      description: ID of the RTI template used, if any.
+    createdAt:
+      type: string
+      format: date-time
+      example: "2026-03-31T09:00:00Z"
+      description: ISO 8601 timestamp of when the request was created (UTC).
+    updatedAt:
+      type: string
+      format: date-time
+      example: "2026-03-31T09:00:00Z"
+      description: ISO 8601 timestamp of when the request was last updated (UTC).
+
+RTIRequestListResponse:
+  type: object
+  required:
+    - data
+    - pagination
+  properties:
+    data:
+      type: array
+      items:
+        $ref: "#/RTIRequestResponse"
+      description: List of RTI requests for the current page.
+    pagination:
+      $ref: "common.yaml#/Pagination"
