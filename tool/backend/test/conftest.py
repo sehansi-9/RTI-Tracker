@@ -6,12 +6,10 @@ from datetime import datetime, timezone, timedelta
 from sqlmodel import SQLModel, Session, create_engine
 from src.models import RTITemplate, Institution, Position
 from src.models.response_models import RTITemplateRequest
-from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from src.services.auth_service import AuthService
 from src.utils import http_client
-
+from src.models import Sender
 from src.models.response_models import SenderResponse
 from src.models.request_models import SenderRequest
 from src.services import SenderService
@@ -286,6 +284,47 @@ def make_sender_response():
 
     return _factory
 
+@pytest.fixture
+def sender_db():
+    """In-memory DB seeded with three Sender rows for service-level tests."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    now = datetime.now(timezone.utc)
+
+    senders = [
+        Sender(
+            id=uuid.uuid4(),
+            name="Alice",
+            email="alice@example.com",
+            address="1 Alpha St",
+            contact_no=None,
+            created_at=now - timedelta(hours=2),
+            updated_at=now - timedelta(hours=2),
+        ),
+        Sender(
+            id=uuid.uuid4(),
+            name="Bob",
+            email=None,
+            address="2 Beta Ave",
+            contact_no="0771111111",
+            created_at=now - timedelta(hours=1),
+            updated_at=now - timedelta(hours=1),
+        ),
+        Sender(
+            id=uuid.uuid4(),
+            name="Carol",
+            email="carol@example.com",
+            address=None,
+            contact_no="0772222222",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+
+    with Session(engine) as session:
+        session.add_all(senders)
+        session.commit()
+        yield session
 
 @pytest.fixture
 def mock_sender_service():
