@@ -73,7 +73,7 @@ export interface RTIStatusHistory {
   rtiRequestId: string;
   statusId: string;
   direction: 'incoming' | 'outgoing';
-  description: string;
+  description: string | null;
   entryTime: Date;
   exitTime: Date | null;
   files: string[]; // Receipt/Attachment links

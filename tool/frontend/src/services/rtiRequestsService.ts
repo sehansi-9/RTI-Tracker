@@ -143,11 +143,67 @@ export const rtiRequestsService = {
     db.statusHistories = db.statusHistories.filter(h => h.rtiRequestId !== id);
   },
 
-  async deleteHistoryFile(historyId: string, fileUrl: string) {
+  async addHistory(payload: Partial<RTIStatusHistory> & { fileUploads?: File[] }) {
     await sleep();
-    const history = db.statusHistories.find(h => h.id === historyId);
+    const newEntry: RTIStatusHistory = {
+      id: crypto.randomUUID(),
+      rtiRequestId: payload.rtiRequestId!,
+      statusId: payload.statusId!,
+      direction: payload.direction!,
+      description: payload.description || '',
+      entryTime: new Date(),
+      exitTime: null,
+      files: payload.fileUploads ? payload.fileUploads.map(f => `https://storage.rti.api/requests/${f.name}`) : [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    db.addStatusHistory(newEntry);
+
+    // Update parent request timestamp
+    const request = db.rtiRequests.find(r => r.id === payload.rtiRequestId);
+    if (request) {
+      request.updatedAt = new Date();
+    }
+
+    return newEntry;
+  },
+
+  async updateHistory(id: string, payload: Partial<RTIStatusHistory> & { fileUploads?: File[] }) {
+    await sleep();
+    const index = db.statusHistories.findIndex(h => h.id === id);
+    if (index === -1) throw new Error('Entry not found');
+
+    const entry = db.statusHistories[index];
+    const uploadedFiles = payload.fileUploads ? payload.fileUploads.map(f => `https://storage.rti.api/requests/${f.name}`) : [];
+
+    db.statusHistories[index] = {
+      ...entry,
+      ...payload,
+      files: [...(payload.files || entry.files), ...uploadedFiles],
+      updatedAt: new Date(),
+    };
+
+    // Update parent request timestamp
+    const request = db.rtiRequests.find(r => r.id === entry.rtiRequestId);
+    if (request) {
+      request.updatedAt = new Date();
+    }
+
+    return db.statusHistories[index];
+  },
+
+  async deleteHistory(id: string) {
+    await sleep();
+    const history = db.statusHistories.find(h => h.id === id);
     if (history) {
-      history.files = history.files.filter(f => f !== fileUrl);
+      const requestId = history.rtiRequestId;
+      db.statusHistories = db.statusHistories.filter(h => h.id !== id);
+      
+      // Update parent request timestamp
+      const request = db.rtiRequests.find(r => r.id === requestId);
+      if (request) {
+        request.updatedAt = new Date();
+      }
     }
   }
 };
