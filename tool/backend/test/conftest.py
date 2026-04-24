@@ -55,7 +55,7 @@ def patch_http_client_session():
 
 # fixtures for RTI Templates
 @pytest.fixture
-def in_memory_db():
+def rti_template_db():
     """Create an in-memory SQLite DB and provide a fresh session with test data."""
     engine = create_engine("sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
@@ -139,11 +139,11 @@ def make_file_service():
     ) -> MagicMock:
         file_service = MagicMock()
         
-        # mock upload_file
+        # mock create_file
         if upload_side_effect:
-            file_service.upload_file = AsyncMock(side_effect=upload_side_effect)
+            file_service.create_file = AsyncMock(side_effect=upload_side_effect)
         else:
-            file_service.upload_file = AsyncMock(return_value={
+            file_service.create_file = AsyncMock(return_value={
                 "relative_path": relative_path,
                 "absolute_path": absolute_path,
             })
@@ -165,8 +165,7 @@ def make_file_service():
             "sha": "old-sha"
         })
         
-        # mock restore_file
-        file_service.restore_file = AsyncMock(return_value=True)
+        # remove restore_file/recreate_file mocks since they are deleted
 
         return file_service
 

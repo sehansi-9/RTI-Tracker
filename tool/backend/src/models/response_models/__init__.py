@@ -9,7 +9,7 @@ __all__ = [
     "SenderResponse",
     "SenderListResponse",
     "InstitutionListResponse",
-    "InstitutionResponse"
+    "InstitutionResponse",
     "PositionListResponse",
     "PositionResponse"
 ]

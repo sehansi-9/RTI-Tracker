@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, func, Session
 from src.core.exceptions import InternalServerException, BadRequestException, NotFoundException, ConflictException
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,18 @@ class RTITemplateService:
             uploaded_file_path: str | None = None  # tracks successful upload for compensating transaction
 
             # 1. upload the file
-            response = await self.file_service.upload_file(template_id=unique_id, file=template_request.file)
+            if template_request.file.content_type != "text/markdown":
+                raise BadRequestException(f'{template_request.file.content_type} is not allowed')
+            
+            content = await template_request.file.read()
+            _, ext = os.path.splitext(template_request.file.filename)
+            file_path = f"rti-templates/{unique_id}{ext}"
+
+            response = await self.file_service.create_file(
+                file_path=file_path, 
+                content=content,
+                message=f"Upload file {template_request.file.filename}"
+            )
 
             relative_path = response.get("relative_path", "")
             absolute_path = response.get("absolute_path", "")
@@ -149,10 +161,22 @@ class RTITemplateService:
         try:
             # update the file if provided
             if template_request.file:
-                # fetch old content for compensating transaction
-                old_file_data = await self.file_service.get_file(rti_template.id)
+                if template_request.file.content_type != "text/markdown":
+                    raise BadRequestException(f'{template_request.file.content_type} is not allowed')
+                
+                content = await template_request.file.read()
+                _, ext = os.path.splitext(template_request.file.filename)
+                file_path = f"rti-templates/{rti_template.id}{ext}"
 
-                response = await self.file_service.update_file(rti_template.id, template_request.file)
+                # fetch old content for compensating transaction
+                old_file_data = await self.file_service.get_file(file_path)
+
+                response = await self.file_service.update_file(
+                    file_path=file_path, 
+                    content=content, 
+                    sha=old_file_data["sha"],
+                    message=f"Update content of {template_request.file.filename}"
+                )
                 
                 relative_path = response.get("relative_path", "")
                 if not relative_path:
@@ -180,12 +204,17 @@ class RTITemplateService:
 
             # rollback the file update if it was successful but DB commit failed
             if old_file_data:
-                current_file_data = await self.file_service.get_file(rti_template.id)
-                await self.file_service.restore_file(
-                    template_id=rti_template.id,
-                    content=old_file_data["content"],
-                    sha=current_file_data["sha"]
-                )
+                current_file_data = await self.file_service.get_file(file_path)
+                try:
+                    await self.file_service.update_file(
+                        file_path=file_path,
+                        content=old_file_data["content"],
+                        sha=current_file_data["sha"],
+                        message=f"Rollback: restore previous version of {file_path}"
+                    )
+                    logger.info(f"[RTI SERVICE] Compensating transaction: restored {file_path} on github")
+                except Exception as ex:
+                    logger.error(f"[RTI SERVICE] Compensating transaction failed — could not restore {file_path}: {ex}")
 
             logger.error(f"[RTI SERVICE] Error updating RTI template: {e}")
             raise InternalServerException(f"[RTI SERVICE] Failed to update RTI template: {e}") from e
@@ -212,7 +241,7 @@ class RTITemplateService:
        
         try:
             if file_path:
-                old_file_data = await self.file_service.get_file(rti_template.id)
+                old_file_data = await self.file_service.get_file(file_path)
 
             # Delete file from GitHub
             if file_path:
@@ -226,7 +255,15 @@ class RTITemplateService:
         except IntegrityError:
             self.session.rollback()
             if old_file_data:
-                await self.file_service.recreate_file(template_id=target_id, content=old_file_data["content"])
+                try:
+                    await self.file_service.create_file(
+                        file_path=file_path,
+                        content=old_file_data["content"],
+                        message=f"Recreate file {file_path}"
+                    )
+                    logger.info(f"[RTI SERVICE] Compensating transaction: recreated {file_path} on github")
+                except Exception as ex:
+                    logger.error(f"[RTI SERVICE] Compensating transaction failed — could not recreate {file_path}: {ex}")
             raise ConflictException("Cannot delete RTI Template because it is used in existing RTI Requests.")
 
         except (BadRequestException, NotFoundException, ConflictException):
@@ -234,7 +271,15 @@ class RTITemplateService:
         except Exception as e:
             self.session.rollback()
             if old_file_data:
-                await self.file_service.recreate_file(template_id=target_id, content=old_file_data["content"])
+                try:
+                    await self.file_service.create_file(
+                        file_path=file_path,
+                        content=old_file_data["content"],
+                        message=f"Recreate file {file_path}"
+                    )
+                    logger.info(f"[RTI SERVICE] Compensating transaction: recreated {file_path} on github")
+                except Exception as ex:
+                    logger.error(f"[RTI SERVICE] Compensating transaction failed — could not recreate {file_path}: {ex}")
             logger.error(f"[RTI SERVICE] Error deleting RTI template: {e}")
             raise InternalServerException(f"Failed to delete RTI template: {e}") from e
 

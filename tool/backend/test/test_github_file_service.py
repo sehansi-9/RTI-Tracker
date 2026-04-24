@@ -61,84 +61,53 @@ def test_file_service_initialization():
         assert hasattr(service, "github")
         assert hasattr(service, "repository")
 
-# upload_file tests
+# create_file tests
 @pytest.mark.asyncio
-async def test_upload_file_success(make_upload_file, make_github_content_file):
-    """upload_file returns correct relative and absolute paths on success."""
-    template_id = uuid.uuid4()
-    expected_relative = f"rti-templates/{template_id}.md"
-    expected_absolute = f"https://github.com/test-repo/blob/main/{expected_relative}"
+async def test_create_file_success(make_github_content_file):
+    """create_file returns correct relative and absolute paths on success."""
+    file_path = "rti-templates/test-file.md"
+    expected_absolute = f"https://github.com/test-repo/blob/main/{file_path}"
 
-    content_file = make_github_content_file(expected_relative)
+    content_file = make_github_content_file(file_path)
     service = _make_service(create_file_return={"content": content_file})
 
-    result = await service.upload_file(template_id=template_id, file=make_upload_file())
+    result = await service.create_file(file_path=file_path, content=b"content")
 
-    assert result["relative_path"] == expected_relative
+    assert result["relative_path"] == file_path
     assert result["absolute_path"] == expected_absolute
     service.repository.create_file.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_upload_file_calls_create_file_with_correct_args(make_upload_file, make_github_content_file):
-    """upload_file passes the correct path, message, content, and branch to the GitHub API."""
-    template_id = uuid.uuid4()
+async def test_create_file_calls_create_file_with_correct_args(make_github_content_file):
+    """create_file passes the correct path, message, content, and branch to the GitHub API."""
     file_content = b"# RTI Template"
-    expected_path = f"rti-templates/{template_id}.md"
+    expected_path = "rti-templates/test-file.md"
 
     content_file = make_github_content_file(expected_path)
     service = _make_service(create_file_return={"content": content_file})
 
-    await service.upload_file(template_id=template_id, file=make_upload_file(content=file_content))
+    await service.create_file(file_path=expected_path, content=file_content, message="Upload custom file")
 
     call_kwargs = service.repository.create_file.call_args.kwargs
     assert call_kwargs["path"] == expected_path
     assert call_kwargs["content"] == file_content
     assert call_kwargs["branch"] == "main"
-
-# upload_file tests
-@pytest.mark.asyncio
-async def test_upload_file_rejects_disallowed_content_type(make_upload_file):
-    """upload_file raises BadRequestException for non-markdown files."""
-    service = _make_service()
-    upload = make_upload_file(content_type="application/pdf", filename="document.pdf")
-
-    with pytest.raises(BadRequestException):
-        await service.upload_file(template_id=uuid.uuid4(), file=upload)
+    assert call_kwargs["message"] == "Upload custom file"
 
 @pytest.mark.asyncio
-async def test_upload_file_rejects_plain_text(make_upload_file):
-    """upload_file raises BadRequestException for text/plain files."""
-    service = _make_service()
-
-    with pytest.raises(BadRequestException):
-        await service.upload_file(template_id=uuid.uuid4(), file=make_upload_file(content_type="text/plain"))
-
-
-@pytest.mark.asyncio
-async def test_upload_file_bad_request_message_contains_content_type(make_upload_file):
-    """The BadRequestException message includes the rejected content type."""
-    service = _make_service()
-    upload = make_upload_file(content_type="image/png")
-
-    with pytest.raises(BadRequestException) as exc_info:
-        await service.upload_file(template_id=uuid.uuid4(), file=upload)
-
-    assert "image/png" in str(exc_info.value)
-
-@pytest.mark.asyncio
-async def test_upload_file_raises_internal_exception_on_github_error(make_upload_file):
-    """upload_file wraps GitHub API errors in InternalServerException."""
+async def test_create_file_raises_internal_exception_on_github_error():
+    """create_file wraps GitHub API errors in InternalServerException."""
     service = _make_service(create_file_side_effect=GithubException(500, "GitHub API unavailable"))
 
     with pytest.raises(InternalServerException):
-        await service.upload_file(template_id=uuid.uuid4(), file=make_upload_file())
+        await service.create_file(file_path="test.md", content=b"content")
 
 @pytest.mark.asyncio
-async def test_upload_file_returns_empty_paths_when_content_file_is_none(make_upload_file):
-    """upload_file returns empty strings when the GitHub response has no content object."""
+async def test_create_file_returns_empty_paths_when_content_file_is_none():
+    """create_file returns empty strings when the GitHub response has no content object."""
     service = _make_service(create_file_return={"content": None})
 
-    result = await service.upload_file(template_id=uuid.uuid4(), file=make_upload_file())
+    result = await service.create_file(file_path="test.md", content=b"content")
 
     assert result["relative_path"] == ""
     assert result["absolute_path"] == ""
@@ -146,45 +115,31 @@ async def test_upload_file_returns_empty_paths_when_content_file_is_none(make_up
 
 # update_file tests
 @pytest.mark.asyncio
-async def test_update_file_success(make_upload_file, make_github_content_file):
+async def test_update_file_success(make_github_content_file):
     """update_file returns correct relative and absolute paths on success."""
-    template_id = uuid.uuid4()
-    expected_relative = f"rti-templates/{template_id}.md"
-    expected_absolute = f"https://github.com/test-repo/blob/main/{expected_relative}"
+    file_path = "rti-templates/test-file.md"
+    expected_absolute = f"https://github.com/test-repo/blob/main/{file_path}"
 
-    content_file = make_github_content_file(expected_relative)
-    # mock get_contents for update call
-    # update_file returns a dict with "content" in PyGithub
-    service = _make_service(
-        get_contents_return=MagicMock(sha="old-sha"),
-        update_file_return={"content": content_file}
-    )
+    content_file = make_github_content_file(file_path)
+    service = _make_service(update_file_return={"content": content_file})
 
-    result = await service.update_file(template_id=template_id, file=make_upload_file())
+    result = await service.update_file(file_path=file_path, content=b"content", sha="abc123sha")
 
-    assert result["relative_path"] == expected_relative
+    assert result["relative_path"] == file_path
     assert result["absolute_path"] == expected_absolute
     service.repository.update_file.assert_called_once()
 
-
 @pytest.mark.asyncio
-async def test_update_file_calls_update_file_with_correct_args(make_upload_file, make_github_content_file):
+async def test_update_file_calls_update_file_with_correct_args(make_github_content_file):
     """update_file passes correct path, content, sha and branch to GitHub API."""
-    template_id = uuid.uuid4()
     file_content = b"# Updated RTI"
-    expected_path = f"rti-templates/{template_id}.md"
+    expected_path = "rti-templates/test-file.md"
     expected_sha = "abc123sha"
 
     content_file = make_github_content_file(expected_path)
-    existing_file = MagicMock()
-    existing_file.sha = expected_sha
+    service = _make_service(update_file_return={"content": content_file})
 
-    service = _make_service(
-        get_contents_return=existing_file,
-        update_file_return={"content": content_file}
-    )
-
-    await service.update_file(template_id=template_id, file=make_upload_file(content=file_content))
+    await service.update_file(file_path=expected_path, content=file_content, sha=expected_sha, message="Update custom content")
 
     service.repository.update_file.assert_called_once()
     call_kwargs = service.repository.update_file.call_args.kwargs
@@ -192,36 +147,22 @@ async def test_update_file_calls_update_file_with_correct_args(make_upload_file,
     assert call_kwargs["content"] == file_content
     assert call_kwargs["sha"] == expected_sha
     assert call_kwargs["branch"] == "main"
+    assert call_kwargs["message"] == "Update custom content"
 
 @pytest.mark.asyncio
-async def test_update_file_rejects_disallowed_content_type(make_upload_file):
-    """update_file raises BadRequestException for non-markdown files."""
-    service = _make_service()
-    upload = make_upload_file(content_type="text/html", filename="page.html")
-
-    with pytest.raises(BadRequestException):
-        await service.update_file(template_id=uuid.uuid4(), file=upload)
-
-@pytest.mark.asyncio
-async def test_update_file_raises_internal_exception_on_github_error(make_upload_file):
+async def test_update_file_raises_internal_exception_on_github_error():
     """update_file wraps GitHub API errors in InternalServerException."""
-    service = _make_service(
-        get_contents_return=MagicMock(sha="sha"),
-        update_file_side_effect=GithubException(500, "Update failed")
-    )
+    service = _make_service(update_file_side_effect=GithubException(500, "Update failed"))
 
     with pytest.raises(InternalServerException):
-        await service.update_file(template_id=uuid.uuid4(), file=make_upload_file())
+        await service.update_file(file_path="test.md", content=b"content", sha="sha")
 
 @pytest.mark.asyncio
-async def test_update_file_returns_empty_paths_when_content_file_is_none(make_upload_file):
+async def test_update_file_returns_empty_paths_when_content_file_is_none():
     """update_file returns empty strings when GitHub response has no content object."""
-    service = _make_service(
-        get_contents_return=MagicMock(sha="sha"),
-        update_file_return={"content": None}
-    )
+    service = _make_service(update_file_return={"content": None})
 
-    result = await service.update_file(template_id=uuid.uuid4(), file=make_upload_file())
+    result = await service.update_file(file_path="test.md", content=b"content", sha="sha")
 
     assert result["relative_path"] == ""
     assert result["absolute_path"] == ""
@@ -300,8 +241,7 @@ def test_get_github_file_path_builds_correct_url():
 @pytest.mark.asyncio
 async def test_get_file_success(make_github_content_file):
     """get_file returns decoded content and SHA from the GitHub API."""
-    template_id = uuid.uuid4()
-    file_path = f"rti-templates/{template_id}.md"
+    file_path = f"rti-templates/test-file.md"
     expected_content = b"# Content"
     expected_sha = "sha123"
 
@@ -311,7 +251,7 @@ async def test_get_file_success(make_github_content_file):
 
     service = _make_service(get_contents_return=contents)
 
-    result = await service.get_file(template_id=template_id)
+    result = await service.get_file(file_path=file_path)
 
     assert result["content"] == expected_content
     assert result["sha"] == expected_sha
@@ -323,65 +263,5 @@ async def test_get_file_raises_internal_exception_on_github_error():
     service = _make_service(get_contents_side_effect=GithubException(404, "Not Found"))
 
     with pytest.raises(InternalServerException):
-        await service.get_file(template_id=uuid.uuid4())
-
-# restore_file tests
-@pytest.mark.asyncio
-async def test_restore_file_success():
-    """restore_file returns True and calls update_file on the GitHub repository."""
-    template_id = uuid.uuid4()
-    content = b"# Restored Content"
-    sha = "old-sha"
-    file_path = f"rti-templates/{template_id}.md"
-
-    service = _make_service(update_file_return={"content": MagicMock()})
-
-    result = await service.restore_file(template_id=template_id, content=content, sha=sha)
-
-    assert result is True
-    service.repository.update_file.assert_called_once_with(
-        path=file_path,
-        message=f"Rollback: restore previous version of {template_id}.md",
-        content=content,
-        sha=sha,
-        branch="main"
-    )
-
-@pytest.mark.asyncio
-async def test_restore_file_returns_false_on_github_error():
-    """restore_file returns False when the GitHub API fails."""
-    service = _make_service(update_file_side_effect=GithubException(500, "Restore failed"))
-
-    result = await service.restore_file(template_id=uuid.uuid4(), content=b"", sha="sha")
-
-    assert result is False
-
-# recreate_file tests
-@pytest.mark.asyncio
-async def test_recreate_file_success():
-    """recreate_file returns True and calls create_file on the GitHub repository."""
-    template_id = uuid.uuid4()
-    content = b"# Recreated Content"
-    file_path = f"rti-templates/{template_id}.md"
-
-    service = _make_service(create_file_return={"content": MagicMock()})
-
-    result = await service.recreate_file(template_id=template_id, content=content)
-
-    assert result is True
-    service.repository.create_file.assert_called_once_with(
-        path=file_path,
-        message=f"Recreate file {template_id}.md",
-        content=content,
-        branch="main"
-    )
-
-@pytest.mark.asyncio
-async def test_recreate_file_returns_false_on_github_error():
-    """recreate_file returns False when the GitHub API fails."""
-    service = _make_service(create_file_side_effect=GithubException(500, "Recreate failed"))
-
-    result = await service.recreate_file(template_id=uuid.uuid4(), content=b"")
-
-    assert result is False
+        await service.get_file(file_path="rti-templates/test.md")
 
