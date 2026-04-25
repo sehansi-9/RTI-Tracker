@@ -1,39 +1,35 @@
 FROM python:3.13-slim
 
-# Install uv
+# 1. Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set working directory
+# 2. Setup user
+RUN adduser --disabled-password --gecos "" --home "/nonexistent" --shell "/sbin/nologin" --no-create-home --uid 10014 choreo
+
 WORKDIR /app
 
-# Enable bytecode compilation and set PATH
+# 3. Environment
 ENV UV_COMPILE_BYTECODE=1
-ENV UV_PROJECT_ENVIRONMENT=/venv
-ENV PATH="/venv/bin:$PATH"
+ENV UV_PROJECT_ENVIRONMENT=/.venv
+ENV UV_CACHE_DIR=/tmp/.uv_cache
+ENV UV_PYTHON_INSTALL_DIR=/tmp/.uv_python
+ENV PATH="/.venv/bin:$PATH"
+# Pin uv to the base image's Python — prevents uv from downloading its own CPython
+ENV UV_PYTHON=/usr/local/bin/python3
 
-# Install dependencies FIRST (for better caching)
-COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+# 4. Prepare directories
+RUN mkdir -p /tmp/.uv_cache /tmp/.uv_python /.venv && \
+    chown -R choreo:choreo /app /tmp/.uv_cache /tmp/.uv_python /.venv
 
-# Copy the rest of the application
-COPY --chown=10014:10014 . .
-
-# Final sync to install the project itself
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen
-
-# Define the choreo user
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid 10014 \
-    "choreo"
-# Use the above created unprivileged user
+# 5. Switch to user
 USER 10014
+
+# 6. Copy project metadata + source, then do ONE sync with --no-editable
+#    --no-editable installs your project as a real package (not a src link),
+#    so no second sync is needed after copying code
+COPY --chown=10014:10014 pyproject.toml uv.lock ./
+COPY --chown=10014:10014 . .
+RUN uv sync --frozen --no-dev --no-editable
 
 # Run the app
 CMD ["fastapi", "run", "main.py", "--port", "8000", "--host", "0.0.0.0"]
