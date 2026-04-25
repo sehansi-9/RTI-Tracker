@@ -8,17 +8,20 @@ WORKDIR /app
 
 # Enable bytecode compilation and set PATH
 ENV UV_COMPILE_BYTECODE=1
-ENV PATH="/app/.venv/bin:$PATH"
+ENV UV_PROJECT_ENVIRONMENT=/venv
+ENV PATH="/venv/bin:$PATH"
 
 # Install dependencies FIRST (for better caching)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-cache --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project
 
 # Copy the rest of the application
-COPY . .
+COPY --chown=10014:10014 . .
 
 # Final sync to install the project itself
-RUN uv sync --frozen --no-cache
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen
 
 # Define the choreo user
 RUN adduser \
