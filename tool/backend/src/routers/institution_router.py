@@ -1,6 +1,7 @@
+from src.models.request_models import InstitutionRequest
 from src.services.institution_service import InstitutionService
 from src.repositories.db import SessionDep
-from src.models.response_models import InstitutionListResponse
+from src.models.response_models import InstitutionListResponse, InstitutionResponse
 from src.dependencies import RoleChecker
 from src.models import UserRole, User
 from fastapi import Depends, Query
@@ -19,4 +20,13 @@ def get_institutions_endpoint(
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
     ):
     response = service.get_institutions(page=page, page_size=page_size)
+    return response
+
+@router.post("/institutions", response_model=InstitutionResponse)
+def create_institutions_endpoint(
+    request: InstitutionRequest,
+    service: InstitutionService = Depends(get_institution_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
+):  
+    response = service.create_institutions(request=request)
     return response

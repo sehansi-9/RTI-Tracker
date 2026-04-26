@@ -3,9 +3,10 @@ import pytest
 from sqlalchemy.exc import OperationalError
 from src.services.institution_service import InstitutionService
 from src.models.response_models import InstitutionListResponse
-from src.core.exceptions import InternalServerException
+from src.core.exceptions import InternalServerException, ConflictException
 from sqlmodel import SQLModel, Session, create_engine
 
+# get institutions list tests
 def test_get_institutions_default(institution_db):
     """Test fetching institutions with default pagination (page 1, size 10)."""
     service = InstitutionService(session=institution_db)
@@ -60,4 +61,52 @@ def test_get_institutions_db_error(monkeypatch, institution_db):
         service.get_institutions()
     
     assert "Failed to fetch Institutions from database" in str(excinfo.value)
+
+# create institutions test
+def test_create_institutions_success(institution_db, make_institution_request):
+    """Create institution success"""
+
+    service = InstitutionService(session=institution_db)
+
+    request = make_institution_request(name="Test Institution")
+
+    result = service.create_institutions(request=request)
+
+    assert result.name == "Test Institution"
+
+def test_create_institutions_internal_server_error(monkeypatch, institution_db, make_institution_request):
+    """Test Internal Server Error exception raising when exception happen"""
+
+    service = InstitutionService(session=institution_db)
+
+    request = make_institution_request(name="Test Institution")
+
+    def mock_commit(*args, **kwargs):
+        raise OperationalError("Fake DB error", None, None)
+
+    monkeypatch.setattr(institution_db, "commit", mock_commit)
+
+    with pytest.raises(InternalServerException) as excinfo:
+        service.create_institutions(request=request)
+
+    assert "Failed to create Institution" in str(excinfo.value)    
+
+def test_create_institutions_conflict_error(institution_db, make_institution_request):
+    """Test raise Conflict Exception when the db try to create duplicate record with the same name"""
+
+    service = InstitutionService(session=institution_db)
+
+    request_1 = make_institution_request(name="Test Institution")
+    request_2 = make_institution_request(name="Test Institution")
+
+    # first service call
+    result_1 = service.create_institutions(request=request_1)
+
+    assert result_1.name == "Test Institution"
+
+    # second service call with the same institution name
+    with pytest.raises(ConflictException) as excinfo:
+        service.create_institutions(request=request_2)
+
+    assert "Duplicate values violates unique constraint" in str(excinfo.value)
 
