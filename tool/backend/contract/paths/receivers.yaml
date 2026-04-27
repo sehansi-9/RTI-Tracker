@@ -25,11 +25,19 @@
               $ref: "../components/schemas/receivers.yaml#/ReceiverResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-              position_id: be7aa68e-c842-45cd-aab6-f576895b922d
-              institution_id: be7aa68e-c842-45cd-aab6-f576895b922e
+              position:
+                id: be7aa68e-c842-45cd-aab6-f576895b922d
+                name: Minister
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
+              institution:
+                id: be7aa68e-c842-45cd-aab6-f576895b922e
+                name: Minister of X
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
               email: contact@institution.com
               address: "No:15/A, Colombo 12"
-              contactNo: "0781231231"
+              contact_no: "0781231231"
               createdAt: "2026-03-31T09:00:00Z"
               updatedAt: "2026-03-31T09:00:00Z"
       "400":
@@ -63,11 +71,19 @@
             example:
               data:
                 - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  position_id: be7aa68e-c842-45cd-aab6-f576895b922d
-                  institution_id: be7aa68e-c842-45cd-aab6-f576895b922e
+                  position:
+                    id: be7aa68e-c842-45cd-aab6-f576895b922d
+                    name: Minister
+                    createdAt: "2026-03-31T09:00:00Z"
+                    updatedAt: "2026-03-31T09:00:00Z"
+                  institution:
+                    id: be7aa68e-c842-45cd-aab6-f576895b922e
+                    name: Minister of X
+                    createdAt: "2026-03-31T09:00:00Z"
+                    updatedAt: "2026-03-31T09:00:00Z"
                   email: contact@institution.com
                   address: "No:15/A, Colombo 12"
-                  contactNo: "0781231231"
+                  contact_no: "0781231231"
                   createdAt: "2026-03-31T09:00:00Z"
                   updatedAt: "2026-03-31T09:00:00Z"
               pagination:
@@ -101,11 +117,19 @@
               $ref: "../components/schemas/receivers.yaml#/ReceiverResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-              position_id: be7aa68e-c842-45cd-aab6-f576895b922d
-              institution_id: be7aa68e-c842-45cd-aab6-f576895b922e
+              position:
+                id: be7aa68e-c842-45cd-aab6-f576895b922d
+                name: Minister
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
+              institution:
+                id: be7aa68e-c842-45cd-aab6-f576895b922e
+                name: Minister of X
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
               email: contact@institution.com
               address: "No:15/A, Colombo 12"
-              contactNo: "0781231231"
+              contact_no: "0781231231"
               createdAt: "2026-03-31T09:00:00Z"
               updatedAt: "2026-03-31T09:00:00Z"
       "401":
@@ -142,11 +166,19 @@
               $ref: "../components/schemas/receivers.yaml#/ReceiverResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-              position_id: be7aa68e-c842-45cd-aab6-f576895b922d
-              institution_id: be7aa68e-c842-45cd-aab6-f576895b922e
+              position:
+                id: be7aa68e-c842-45cd-aab6-f576895b922d
+                name: Minister
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
+              institution:
+                id: be7aa68e-c842-45cd-aab6-f576895b922e
+                name: Minister of X
+                createdAt: "2026-03-31T09:00:00Z"
+                updatedAt: "2026-03-31T09:00:00Z"
               email: contact@institution.com
               address: "No:15/A, Colombo 12"
-              contactNo: "0781231231"
+              contact_no: "0781231231"
               createdAt: "2026-03-31T09:00:00Z"
               updatedAt: "2026-03-31T09:00:00Z"
       "400":
