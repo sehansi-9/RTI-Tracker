@@ -177,3 +177,82 @@ def test_get_institution_internal_server_error(monkeypatch, institution_db):
         
     assert "Failed to read Insitution" in str(excinfo.value)
 
+# update institution test
+def test_update_institution_success(institution_db, make_institution_request):
+    """Test update institution success"""
+    service = InstitutionService(session=institution_db)
+    
+    # Create an institution first
+    create_request = make_institution_request(name="Old Name")
+    created_institution = service.create_institutions(request=create_request)
+    
+    # Update the institution
+    update_request = make_institution_request(name="New Name")
+    updated_institution = service.update_institution(
+        institution_id=created_institution.id, 
+        request=update_request
+    )
+    
+    assert updated_institution.id == created_institution.id
+    assert updated_institution.name == "New Name"
+
+def test_update_institution_invalid_id(institution_db, make_institution_request):
+    """Test update institution with invalid id"""
+    service = InstitutionService(session=institution_db)
+    request = make_institution_request(name="New Name")
+    
+    with pytest.raises(BadRequestException) as excinfo:
+        service.update_institution(institution_id="invalid-uuid", request=request)
+        
+    assert "Invalid UUID format" in str(excinfo.value)
+
+def test_update_institution_not_found(institution_db, make_institution_request):
+    """Test update institution not found"""
+    service = InstitutionService(session=institution_db)
+    random_id = str(uuid4())
+    request = make_institution_request(name="New Name")
+    
+    with pytest.raises(NotFoundException) as excinfo:
+        service.update_institution(institution_id=random_id, request=request)
+        
+    assert f"Institution with id {random_id} not found." in str(excinfo.value)
+
+def test_update_institution_conflict_error(institution_db, make_institution_request):
+    """Test update institution conflict error (duplicate name)"""
+    service = InstitutionService(session=institution_db)
+    
+    # Create two institutions
+    req1 = make_institution_request(name="Institution A")
+    service.create_institutions(request=req1)
+    
+    req2 = make_institution_request(name="Institution B")
+    inst2 = service.create_institutions(request=req2)
+    
+    # Try to update inst2's name to "Institution A"
+    update_request = make_institution_request(name="Institution A")
+    
+    with pytest.raises(ConflictException) as excinfo:
+        service.update_institution(institution_id=inst2.id, request=update_request)
+        
+    assert "Institution with this name already exists." in str(excinfo.value)
+
+def test_update_institution_internal_server_error(monkeypatch, institution_db, make_institution_request):
+    """Test update institution raises internal server error"""
+    service = InstitutionService(session=institution_db)
+    
+    # Create an institution first
+    create_request = make_institution_request(name="Old Name")
+    created_institution = service.create_institutions(request=create_request)
+    
+    update_request = make_institution_request(name="New Name")
+    
+    # Mock commit to raise OperationalError
+    def mock_commit(*args, **kwargs):
+        raise OperationalError("Fake DB error", None, None)
+        
+    monkeypatch.setattr(institution_db, "commit", mock_commit)
+    
+    with pytest.raises(InternalServerException) as excinfo:
+        service.update_institution(institution_id=created_institution.id, request=update_request)
+        
+    assert "Failed to update Institution" in str(excinfo.value)

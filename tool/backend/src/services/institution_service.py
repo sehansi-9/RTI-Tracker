@@ -81,7 +81,8 @@ class InstitutionService:
     def create_institutions(
         self,
         *,
-        request):
+        request
+    ):
         try:
             unique_id = uuid4()
 
@@ -107,3 +108,40 @@ class InstitutionService:
             self.session.rollback()
             logger.error(f"[INSTITUTION SERVICE] Error creating institution: {e}")
             raise InternalServerException("Failed to create Institution") from e
+
+    # API
+    def update_institution(
+        self,
+        *,
+        institution_id,
+        request
+    ):
+        try:
+            target_id = UUID(institution_id) if isinstance(institution_id, str) else institution_id
+        except ValueError:
+            raise BadRequestException(f"Invalid UUID format: {institution_id}")
+
+        institution = self.session.get(Institution, target_id)
+
+        if not institution:
+            raise NotFoundException(f"Institution with id {institution_id} not found.")
+        
+        try:
+            institution.name = request.name      
+
+            self.session.add(institution)
+            self.session.commit()
+            self.session.refresh(institution)
+
+            return InstitutionResponse.model_validate(institution)
+
+        except Exception as e:
+            self.session.rollback()
+
+            if isinstance(e, IntegrityError):
+                logger.error(f"[INSTITUTION SERVICE] Duplicate institution error updating Institution: {e}")
+                raise ConflictException("Institution with this name already exists.") from e
+
+            logger.error(f"[INSTITUTION SERVICE] Error updating Institution: {e}")
+            raise InternalServerException(f"Failed to update Institution: {e}") from e
+

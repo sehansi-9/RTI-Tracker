@@ -33,7 +33,6 @@ def get_institution_by_id_endpoint(
     response = service.get_institution_by_id(institution_id=id)
     return response
 
-
 @router.post("/institutions", response_model=InstitutionResponse)
 def create_institutions_endpoint(
     request: InstitutionRequest,
@@ -41,4 +40,14 @@ def create_institutions_endpoint(
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):  
     response = service.create_institutions(request=request)
+    return response
+
+@router.put("/rti_templates/{id}")
+async def update_rti_template_endpoint(
+    id: Annotated[str, Path(title="ID of the institution")],
+    request: InstitutionRequest,
+    service: InstitutionService = Depends(get_institution_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
+):
+    response = service.update_institution(institution_id=id,request=request)
     return response
