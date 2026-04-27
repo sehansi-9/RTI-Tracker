@@ -2,7 +2,8 @@ import logging
 from src.models import PaginationModel
 from src.models.response_models import PositionListResponse, PositionResponse
 from src.models.table_schemas import Position
-from src.core.exceptions import InternalServerException, NotFoundException, IntegrityError, ConflictException
+from src.core.exceptions import InternalServerException, NotFoundException, ConflictException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select, func
 from uuid import UUID
 
