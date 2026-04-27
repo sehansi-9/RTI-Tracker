@@ -41,6 +41,7 @@ export function RTIRequests() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [selectionMode, setSelectionMode] = useState<'none' | 'template'>('none');
+  const [receiverSearch, setReceiverSearch] = useState('');
   const [formData, setFormData] = useState({
     templateId: '',
     title: '',
@@ -67,7 +68,7 @@ export function RTIRequests() {
   const loadLookups = async () => {
     try {
       const [r, t] = await Promise.all([
-        receiversService.listReceivers(1, 100),
+        receiversService.listReceivers(1, 6),
         templateService.getRTITemplates(1, 100)
       ]);
       setSenders(mockSenders);
@@ -86,6 +87,20 @@ export function RTIRequests() {
       loadLookups();
     }
   }, [view, pagination.page, pagination.pageSize, search]);
+
+  useEffect(() => {
+    if (view === 'create') {
+      const delayFn = setTimeout(async () => {
+        try {
+          const res = await receiversService.listReceivers(1, 6, receiverSearch);
+          setReceivers(res.data);
+        } catch (e) {
+          // ignore
+        }
+      }, 300);
+      return () => clearTimeout(delayFn);
+    }
+  }, [receiverSearch, view]);
 
   const openCreate = () => {
     setStep(1);
@@ -326,7 +341,7 @@ export function RTIRequests() {
                   </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-gray-700">Receiver (Institution - Position)</label>
-                    <SearchableSelect placeholder="Search for a receiver..." options={receivers.map(r => ({ id: r.id, name: `${r.institutionName} - ${r.positionName}` }))} value={formData.receiverId} onChange={(id) => setFormData({ ...formData, receiverId: id })} />
+                    <SearchableSelect placeholder="Search for a receiver..." options={receivers.map(r => ({ id: r.id, name: `${r.institutionName} - ${r.positionName}` }))} value={formData.receiverId} onChange={(id) => setFormData({ ...formData, receiverId: id })} onSearchChange={setReceiverSearch} />
                     {showErrors && !formData.receiverId && <FieldError error="Please select a receiver" />}
                   </div>
                 </div>
