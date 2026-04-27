@@ -111,7 +111,7 @@ def test_create_institutions_conflict_error(institution_db, make_institution_req
     with pytest.raises(ConflictException) as excinfo:
         service.create_institution(request=request_2)
 
-    assert "Institution with this name already exists." in str(excinfo.value)
+    assert "Institution with this name already exists" in str(excinfo.value)
 
 def test_create_institutions_with_empty_name(institution_db):
     """Test raise Validation Error when pass an empty name"""
@@ -175,7 +175,7 @@ def test_get_institution_internal_server_error(monkeypatch, institution_db):
     with pytest.raises(InternalServerException) as excinfo:
         service.get_institution(institution_id=random_id)
         
-    assert "Failed to read Insitution" in str(excinfo.value)
+    assert "Failed to read Institution" in str(excinfo.value)
 
 # update institution test
 def test_update_institution_success(institution_db, make_institution_request):
@@ -234,7 +234,7 @@ def test_update_institution_conflict_error(institution_db, make_institution_requ
     with pytest.raises(ConflictException) as excinfo:
         service.update_institution(institution_id=inst2.id, request=update_request)
         
-    assert "Institution with this name already exists." in str(excinfo.value)
+    assert "Institution with this name already exists" in str(excinfo.value)
 
 def test_update_institution_internal_server_error(monkeypatch, institution_db, make_institution_request):
     """Test update institution raises internal server error"""

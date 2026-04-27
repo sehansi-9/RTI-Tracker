@@ -74,7 +74,7 @@ class InstitutionService:
             raise
         except Exception as e:
             logger.error(f"[INSTITUTION SERVICE] Error reading Institution: {e}")
-            raise InternalServerException(f"Failed to read Insitution: {e}") from e
+            raise InternalServerException(f"Failed to read Institution") from e
     
     # API
     def create_institution(
@@ -85,7 +85,7 @@ class InstitutionService:
         try:
             unique_id = uuid4()
 
-            # insitution object to store in the DB
+            # institution object to store in the DB
             institution = Institution(
                 id=unique_id,
                 name=request.name
@@ -101,7 +101,7 @@ class InstitutionService:
         except IntegrityError as e:
             self.session.rollback()
             logger.error(f"[INSTITUTION SERVICE] Error creating institution: {e}")
-            raise ConflictException("Institution with this name already exists.") from e
+            raise ConflictException("Institution with this name already exists") from e
 
         except Exception as e:
             self.session.rollback()
@@ -139,10 +139,10 @@ class InstitutionService:
 
             if isinstance(e, IntegrityError):
                 logger.error(f"[INSTITUTION SERVICE] Duplicate institution error updating Institution: {e}")
-                raise ConflictException("Institution with this name already exists.") from e
+                raise ConflictException("Institution with this name already exists") from e
 
             logger.error(f"[INSTITUTION SERVICE] Error updating Institution: {e}")
-            raise InternalServerException(f"Failed to update Institution: {e}") from e
+            raise InternalServerException(f"Failed to update Institution") from e
 
     # API
     def delete_institution(
@@ -175,6 +175,6 @@ class InstitutionService:
         except Exception as e:
             self.session.rollback()
             logger.error(f"[INSTITUTION SERVICE] Error deleting Institution: {e}")
-            raise InternalServerException(f"Failed to delete Institution: {e}") from e
+            raise InternalServerException(f"Failed to delete Institution") from e
         
         

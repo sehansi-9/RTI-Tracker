@@ -1,5 +1,6 @@
 from fastapi import Path
 from typing import Annotated
+from uuid import UUID
 from src.models.request_models import InstitutionRequest
 from src.services.institution_service import InstitutionService
 from src.repositories.db import SessionDep
@@ -26,7 +27,7 @@ def get_institutions_endpoint(
 
 @router.get("/institutions/{institution_id}", response_model=InstitutionResponse)
 def get_institution_endpoint(
-    institution_id: Annotated[str, Path(title="ID of the institution")],
+    institution_id: Annotated[UUID, Path(title="ID of the institution")],
     service: InstitutionService = Depends(get_institution_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
@@ -44,17 +45,17 @@ def create_institution_endpoint(
 
 @router.put("/institutions/{institution_id}", response_model=InstitutionResponse)
 def update_institution_endpoint(
-    institution_id: Annotated[str, Path(title="ID of the institution")],
+    institution_id: Annotated[UUID, Path(title="ID of the institution")],
     request: InstitutionRequest,
     service: InstitutionService = Depends(get_institution_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
-    response = service.update_institution(institution_id=institution_id,request=request)
+    response = service.update_institution(institution_id=institution_id, request=request)
     return response
 
 @router.delete("/institutions/{institution_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_institution_endpoint(
-    institution_id: Annotated[str, Path(title="ID of the institution")],
+    institution_id: Annotated[UUID, Path(title="ID of the institution")],
     service: InstitutionService = Depends(get_institution_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
