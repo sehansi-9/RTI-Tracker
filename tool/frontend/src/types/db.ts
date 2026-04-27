@@ -49,24 +49,18 @@ export interface RTIRequest {
   referenceId?: string;
   title: string;
   description: string | null;
-  senderId: string;
-  receiverId: string;
-  rtiTemplateId: string;
-  institutionName: string;
-  positionName: string;
-  senderName: string;
-  senderEmail?: string;
-  senderAddress?: string;
-  senderContactNo?: string;
-  receiverEmail?: string;
-  receiverContactNo?: string;
-  receiverAddress?: string;
-  rtiTemplateTitle?: string;
-  rtiTemplateFile?: string;
+  sender: Sender;
+  receiver: Receiver;
+  template: RTITemplateDB;
   createdAt: Date;
   updatedAt: Date;
 }
-
+export interface RTIStatus {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface RTIStatusHistory {
   id: string;
   rtiRequestId: string;

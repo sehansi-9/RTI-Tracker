@@ -12,12 +12,9 @@ export const rtiRequestsService = {
   async list(page: number, pageSize: number, search?: string) {
     await sleep();
     let allRequests = db.rtiRequests.map(r => {
-      const receiver = db.receivers.find(rec => rec.id === r.receiverId);
       return {
         ...r,
         referenceId: r.referenceId || r.id.split('-')[1]?.toUpperCase(),
-        institutionName: r.institutionName || receiver?.institutionName || 'Unknown',
-        positionName: r.positionName || receiver?.positionName || 'Unknown',
       } as RTIRequest;
     });
 
@@ -25,8 +22,8 @@ export const rtiRequestsService = {
       const q = search.toLowerCase();
       allRequests = allRequests.filter(r =>
         r.title.toLowerCase().includes(q) ||
-        r.institutionName.toLowerCase().includes(q) ||
-        r.positionName.toLowerCase().includes(q)
+        (r.receiver?.institutionName || '').toLowerCase().includes(q) ||
+        (r.receiver?.positionName || '').toLowerCase().includes(q)
       );
     }
 
@@ -51,7 +48,7 @@ export const rtiRequestsService = {
     if (!r) throw new Error('RTI Request not found');
 
     // Handle template file link if necessary
-    let templateFile = r.rtiTemplateFile || '-';
+    let templateFile = r.template?.file || '-';
     if (templateFile !== '-' && !templateFile.startsWith('http') && templateFile !== '') {
       templateFile = `${TEMPLATE_BASE_URL}${templateFile}`;
     }
@@ -59,7 +56,10 @@ export const rtiRequestsService = {
     return {
       ...r,
       referenceId: r.referenceId || r.id.split('-')[1]?.toUpperCase(),
-      rtiTemplateFile: templateFile
+      template: {
+        ...r.template,
+        file: templateFile
+      }
     };
   },
 
@@ -68,7 +68,7 @@ export const rtiRequestsService = {
     return db.statusHistories.filter(h => h.rtiRequestId === id);
   },
 
-  async create(payload: Partial<RTIRequest> & { content?: string, file?: File }) {
+  async create(payload: { title?: string, description?: string | null, senderId?: string, receiverId?: string, rtiTemplateId?: string, content?: string, file?: File }) {
     // Standardize FormData for the actual API call
     const formData = toFormData(
       {
@@ -97,20 +97,9 @@ export const rtiRequestsService = {
       referenceId: `RTI-${Math.floor(1000 + Math.random() * 9000)}`,
       title: payload.title!,
       description: payload.description || null,
-      senderId: payload.senderId!,
-      receiverId: payload.receiverId!,
-      rtiTemplateId: payload.rtiTemplateId!,
-      institutionName: receiver?.institutionName || 'Unknown',
-      positionName: receiver?.positionName || 'Unknown',
-      senderName: sender?.name || 'Unknown',
-      senderEmail: sender?.email || '',
-      senderAddress: sender?.address || '',
-      senderContactNo: sender?.contactNo || '',
-      receiverEmail: receiver?.email || '',
-      receiverContactNo: receiver?.contactNo || '',
-      receiverAddress: receiver?.address || '',
-      rtiTemplateTitle: template?.title || '-',
-      rtiTemplateFile: template?.file || '',
+      sender: sender!,
+      receiver: receiver!,
+      template: template!,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

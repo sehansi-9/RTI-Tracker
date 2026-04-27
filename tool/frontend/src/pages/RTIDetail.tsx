@@ -234,13 +234,13 @@ export function RTIDetail() {
                     <div className="flex items-start gap-3">
                       <User className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{request?.senderName}</p>
+                        <p className="text-sm font-bold text-gray-900">{request?.sender?.name}</p>
                         <p className="text-xs text-gray-500">Applicant</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      <p className="text-xs text-gray-600">{request?.senderEmail || 'No email'}</p>
+                      <p className="text-xs text-gray-600">{request?.sender?.email || 'No email'}</p>
                     </div>
                   </div>
                 </div>
@@ -252,13 +252,13 @@ export function RTIDetail() {
                     <div className="flex items-start gap-3">
                       <Building2 className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{request?.institutionName}</p>
-                        <p className="text-xs text-gray-500">{request?.positionName}</p>
+                        <p className="text-sm font-bold text-gray-900">{request?.receiver?.institutionName}</p>
+                        <p className="text-xs text-gray-500">{request?.receiver?.positionName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      <p className="text-xs text-gray-600">{request?.receiverEmail || 'No email'}</p>
+                      <p className="text-xs text-gray-600">{request?.receiver?.email || 'No email'}</p>
                     </div>
                   </div>
                 </div>
@@ -269,9 +269,9 @@ export function RTIDetail() {
                   <div className="flex items-start gap-3">
                     <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-gray-900">{request?.rtiTemplateTitle || 'Custom Request'}</p>
-                      {request?.rtiTemplateFile && (
-                        <p className="text-[10px] text-gray-400 font-mono break-all mt-1">{request?.rtiTemplateFile}</p>
+                      <p className="text-sm font-bold text-gray-900">{request?.template?.title || 'Custom Request'}</p>
+                      {request?.template?.file && (
+                        <p className="text-[10px] text-gray-400 font-mono break-all mt-1">{request?.template?.file}</p>
                       )}
                     </div>
                   </div>

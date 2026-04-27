@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ChevronLeft, FileText, ArrowRight, Save, Send, User } from 'lucide-react';
 import { generateRTIPDF } from '../utils/pdfUtils';
-import { StatusBadge } from '../components/StatusBadge';
 import { Button } from '../components/Button';
 import { DataTable } from '../components/DataTable';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -207,8 +206,8 @@ export function RTIRequests() {
       header: 'Receiver',
       render: (r: RTIRequest) => (
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-gray-900">{r.institutionName}</span>
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">{r.positionName}</span>
+          <span className="text-sm font-semibold text-gray-900">{r.receiver?.institutionName}</span>
+          <span className="text-[10px] text-gray-500 uppercase tracking-wider">{r.receiver?.positionName}</span>
         </div>
       )
     },
