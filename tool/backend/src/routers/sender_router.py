@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, Path
+from typing_extensions import Annotated
 from src.services import SenderService
 from src.repositories.db import SessionDep
 from src.models import SenderResponse, SenderRequest, SenderListResponse, SenderUpdateRequest
@@ -30,7 +31,7 @@ def get_sender_list_endpoint(
 
 @router.get("/senders/{sender_id}", response_model=SenderResponse)
 def get_sender_by_id_endpoint(
-    sender_id: UUID,
+    sender_id: Annotated[UUID, Path(title="ID of the sender")],
     service: SenderService = Depends(get_sender_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
@@ -38,7 +39,7 @@ def get_sender_by_id_endpoint(
     
 @router.patch("/senders/{sender_id}", response_model=SenderResponse)
 def update_sender_patch_endpoint(
-    sender_id: UUID,
+    sender_id: Annotated[UUID, Path(title="ID of the sender")],
     sender_request: SenderUpdateRequest,
     service: SenderService = Depends(get_sender_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
@@ -47,7 +48,7 @@ def update_sender_patch_endpoint(
 
 @router.put("/senders/{sender_id}", response_model=SenderResponse)
 def update_sender_put_endpoint(
-    sender_id: UUID,
+    sender_id: Annotated[UUID, Path(title="ID of the sender")],
     sender_request: SenderRequest,
     service: SenderService = Depends(get_sender_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
@@ -56,7 +57,7 @@ def update_sender_put_endpoint(
 
 @router.delete("/senders/{sender_id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
 def delete_sender_endpoint(
-    sender_id: UUID,
+    sender_id: Annotated[UUID, Path(title="ID of the sender")],
     service: SenderService = Depends(get_sender_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):

@@ -101,7 +101,7 @@ class SenderService:
             result = self.session.get(Sender, sender_id)
 
             if result is None:
-                raise NotFoundException("Sender not found")
+                raise NotFoundException(f"Sender with id {sender_id} not found.")
 
             return SenderResponse.model_validate(result)
         except NotFoundException:
@@ -119,7 +119,7 @@ class SenderService:
             result = self.session.get(Sender, sender_id)
 
             if result is None:
-                raise NotFoundException("Sender not found")
+                raise NotFoundException(f"Sender with id {sender_id} not found.")
 
             # update(PATCH) the record
             # get only provided fields (including explicit nulls)
@@ -163,7 +163,7 @@ class SenderService:
             result = self.session.get(Sender, sender_id)
 
             if result is None:
-                raise NotFoundException("Sender not found")
+                raise NotFoundException(f"Sender with id {sender_id} not found.")
 
             # update(PUT) the record
             result.name = sender_request.name
@@ -205,7 +205,7 @@ class SenderService:
             result = self.session.get(Sender, sender_id)
 
             if result is None:
-                raise NotFoundException("Sender not found")
+                raise NotFoundException(f"Sender with id {sender_id} not found.")
 
             # delete the record
             self.session.delete(result)
@@ -215,9 +215,9 @@ class SenderService:
         except IntegrityError as e:
             self.session.rollback()
             # detect foreign key constraint violation
+            logger.error(f"[SENDER SERVICE] Error deleting sender: {e}")
             raise ConflictException(
-                "Cannot delete sender: they still have associated RTI requests. "
-                "Please delete or reassign those requests first."
+                "Cannot delete sender because it is used in some other records"
             ) from e
         except NotFoundException:
             raise
