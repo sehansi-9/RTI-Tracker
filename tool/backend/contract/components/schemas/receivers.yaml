@@ -37,6 +37,9 @@ ReceiverResponse:
     - id
     - position
     - institution
+    - email
+    - address
+    - contact_no
     - createdAt
     - updatedAt
   properties:
@@ -51,18 +54,21 @@ ReceiverResponse:
     institution:
       $ref: "institutions.yaml#/InstitutionResponse"
     email:
-      type: ["string", "null"]
+      type: string
+      nullable: true
       format: email
       readOnly: true
       example: contact@institution.com
       description: Official email address of the receiver
     address:
-      type: ["string", "null"]
+      type: string
+      nullable: true
       readOnly: true
       example: No:15/A, Colombo 12
       description: Human readable physical address of the receiver
     contact_no:
-      type: ["string", "null"]
+      type: string
+      nullable: true
       readOnly: true
       example: "0781231231"
       description: Mobile contact number of the receiver
