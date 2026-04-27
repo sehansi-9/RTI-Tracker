@@ -1,3 +1,5 @@
+from fastapi import Path
+from typing import Annotated
 from src.models.request_models import InstitutionRequest
 from src.services.institution_service import InstitutionService
 from src.repositories.db import SessionDep
@@ -21,6 +23,16 @@ def get_institutions_endpoint(
     ):
     response = service.get_institutions(page=page, page_size=page_size)
     return response
+
+@router.get("/institutions/{id}", response_model=InstitutionResponse)
+def get_institution_by_id_endpoint(
+    id: Annotated[str, Path(title="ID of the institution")],
+    service: InstitutionService = Depends(get_institution_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
+):
+    response = service.get_institution_by_id(institution_id=id)
+    return response
+
 
 @router.post("/institutions", response_model=InstitutionResponse)
 def create_institutions_endpoint(

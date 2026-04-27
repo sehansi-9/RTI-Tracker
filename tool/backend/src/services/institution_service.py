@@ -1,9 +1,9 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 import logging
 from src.models import PaginationModel, Institution
 from src.models.response_models import InstitutionListResponse, InstitutionResponse
 from src.models.table_schemas import Institution
-from src.core.exceptions import InternalServerException, ConflictException
+from src.core.exceptions import InternalServerException, ConflictException, NotFoundException, BadRequestException
 from sqlmodel import Session, select, func
 from sqlalchemy.exc import IntegrityError
 
@@ -49,8 +49,33 @@ class InstitutionService:
                 pagination=pagination
             )
         except Exception as e:
-            logger.error(f"Error fetching Institutions: {e}")
+            logger.error(f"[INSTITUTION SERVICE] Error fetching Institutions: {e}")
             raise InternalServerException("Failed to fetch Institutions from database.") from e
+    
+    # API
+    def get_institution_by_id(
+        self,
+        *,
+        institution_id
+    ) -> InstitutionResponse:
+        try:
+            try:
+                target_id = UUID(institution_id) if isinstance(institution_id, str) else institution_id
+            except ValueError:
+                raise BadRequestException(f"Invalid UUID format: {institution_id}")
+
+            institution = self.session.get(Institution, target_id)
+
+            if not institution:
+                raise NotFoundException(f"Institution with id {institution_id} not found.")
+
+            return InstitutionResponse.model_validate(institution)
+
+        except (BadRequestException, NotFoundException):
+            raise
+        except Exception as e:
+            logger.error(f"[INSTITUTION SERVICE] Error reading Institution: {e}")
+            raise InternalServerException(f"Failed to read Insitution: {e}") from e
     
     # API
     def create_institutions(
@@ -75,10 +100,10 @@ class InstitutionService:
 
         except IntegrityError as e:
             self.session.rollback()
-            logger.error(f"Error creating institution: {e}")
+            logger.error(f"[INSTITUTION SERVICE] Error creating institution: {e}")
             raise ConflictException("Duplicate values violates unique constraint") from e
 
         except Exception as e:
             self.session.rollback()
-            logger.error(f"Error creating institution: {e}")
+            logger.error(f"[INSTITUTION SERVICE] Error creating institution: {e}")
             raise InternalServerException("Failed to create Institution") from e

@@ -1,12 +1,13 @@
 # tests/test_institution_service.py
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 from src.services.institution_service import InstitutionService
 from src.models.response_models import InstitutionListResponse
 from src.models.request_models import InstitutionRequest
-from src.core.exceptions import InternalServerException, ConflictException
+from src.core.exceptions import InternalServerException, ConflictException, BadRequestException, NotFoundException
 from sqlmodel import SQLModel, Session, create_engine
+from uuid import uuid4
 
 # get institutions list tests
 def test_get_institutions_default(institution_db):
@@ -122,4 +123,57 @@ def test_create_institutions_with_empty_name(institution_db):
         service.create_institutions(request=request)
 
     assert "String should have at least 1 character" in str(excinfo.value)
+
+# get institution by id test
+def test_get_institution_by_id_success(institution_db, make_institution_request):
+    """Get Institution by ID success"""
+    service = InstitutionService(session=institution_db)
+    request = make_institution_request(name="Test Institution")
+
+    # create institution
+    create_result = service.create_institutions(request=request)
+
+    # get institution
+    read_result = service.get_institution_by_id(institution_id=create_result.id)
+
+    assert read_result.name == create_result.name
+    assert read_result.id == create_result.id
+    assert read_result.created_at == create_result.created_at
+    assert read_result.updated_at == create_result.updated_at
+
+def test_get_institution_invalid_id(institution_db):
+    """Test read institution by invalid id"""
+
+    service = InstitutionService(session=institution_db)
+
+    with pytest.raises(BadRequestException) as exeinfo:
+        service.get_institution_by_id(institution_id="")
+    
+    assert "Invalid UUID format" in str(exeinfo.value)
+
+def test_get_institution_not_found(institution_db):
+    """Test get institution not found"""
+    service = InstitutionService(session=institution_db)
+    random_id = str(uuid4())
+
+    with pytest.raises(NotFoundException) as excinfo:
+        service.get_institution_by_id(institution_id=random_id)
+        
+    assert f"Institution with id {random_id} not found." in str(excinfo.value)
+
+def test_get_institution_internal_server_error(monkeypatch, institution_db):
+    """Test get institution raises internal server error"""
+    service = InstitutionService(session=institution_db)
+    
+    def mock_get(*args, **kwargs):
+        raise OperationalError("Fake DB error", None, None)
+        
+    monkeypatch.setattr(institution_db, "get", mock_get)
+    
+    random_id = str(uuid4())
+    
+    with pytest.raises(InternalServerException) as excinfo:
+        service.get_institution_by_id(institution_id=random_id)
+        
+    assert "Failed to read Insitution" in str(excinfo.value)
 
