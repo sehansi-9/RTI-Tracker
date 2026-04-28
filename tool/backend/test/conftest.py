@@ -4,7 +4,7 @@ import uuid
 from aiohttp import ClientError
 from datetime import datetime, timezone, timedelta
 from sqlmodel import SQLModel, Session, create_engine
-from src.models import RTITemplate, Institution, Position, Receiver
+from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest
 from src.models.request_models import RTITemplateRequest
 from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile
@@ -323,6 +323,27 @@ def receiver_db():
         session.add_all(receivers)
         session.commit()
         yield session
+
+@pytest.fixture
+def make_receiver_request():
+    """Factory for ReceiverRequest instances."""
+
+    def _factory(
+        position_id: uuid.UUID,
+        institution_id: uuid.UUID,
+        email: str | None = "new@example.com",
+        address: str | None = "New Address",
+        contact_no: str | None = "0771234568",
+    ) -> ReceiverRequest:
+        return ReceiverRequest(
+            positionId=position_id,
+            institutionId=institution_id,
+            email=email,
+            address=address,
+            contactNo=contact_no
+        )
+
+    return _factory
 
 # sender fixtures 
 @pytest.fixture

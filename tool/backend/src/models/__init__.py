@@ -1,6 +1,6 @@
 from .table_schemas import RTITemplate, Sender, Institution, Position, Receiver
 from .common import User, PaginationModel, UserRole
-from .request_models import SenderRequest
+from .request_models import SenderRequest, ReceiverRequest
 from .response_models import SenderResponse, SenderListResponse
 
 __all__ = [
@@ -11,6 +11,7 @@ __all__ = [
     "UserRole",
     "Institution",
     "SenderRequest",
+    "ReceiverRequest",
     "SenderResponse",
     "Sender",
     "Receiver",

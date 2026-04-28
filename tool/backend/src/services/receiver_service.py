@@ -1,9 +1,11 @@
 import logging
-from src.models import Receiver, PaginationModel
+from src.models import Receiver, PaginationModel, ReceiverRequest
 from src.models.response_models import ReceiverListResponse, ReceiverResponse
-from src.core import InternalServerException
+from src.core import InternalServerException, ConflictException, NotFoundException
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
+from uuid import uuid4, UUID
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,35 @@ class ReceiverService:
 
     def __init__(self, session: Session):
         self.session = session
+
+    # API
+    def create_receiver(self, *, receiver_request: ReceiverRequest) -> ReceiverResponse:
+        try:
+            receiver = Receiver(
+                id=uuid4(),
+                position_id=receiver_request.position_id,
+                institution_id=receiver_request.institution_id,
+                email=receiver_request.email,
+                address=receiver_request.address,
+                contact_no=receiver_request.contact_no
+            )
+            self.session.add(receiver)
+            self.session.commit()
+            self.session.refresh(receiver)
+            return ReceiverResponse.model_validate(receiver)
+
+        except IntegrityError as e:
+            self.session.rollback()
+            error_msg = str(e.orig)
+            if "receivers_email_key" in error_msg or "receivers.email" in error_msg:
+                raise ConflictException("Email already exists for another receiver.")
+            if "receivers_contact_no_key" in error_msg or "receivers.contact_no" in error_msg:
+                raise ConflictException("Contact number already exists for another receiver.")
+            raise ConflictException("Duplicate value violates unique constraint.")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"[RECEIVER SERVICE] Error creating Receiver: {e}")
+            raise InternalServerException("Failed to create Receiver in database.") from e
 
     # API
     def get_receivers(
@@ -55,3 +86,70 @@ class ReceiverService:
         except Exception as e:
             logger.error(f"[RECEIVER SERVICE] Error fetching Receivers: {e}")
             raise InternalServerException("Failed to fetch Receivers from database.") from e
+
+    # API
+    def get_receiver_by_id(self, *, receiver_id: UUID) -> ReceiverResponse:
+        try:
+            statement = select(Receiver).where(Receiver.id == receiver_id).options(
+                selectinload(Receiver.position), selectinload(Receiver.institution)
+            )
+            receiver = self.session.exec(statement).first()
+            if not receiver:
+                raise NotFoundException(f"Receiver with ID {receiver_id} not found.")
+            return ReceiverResponse.model_validate(receiver)
+        except NotFoundException:
+            raise
+        except Exception as e:
+            logger.error(f"[RECEIVER SERVICE] Error fetching Receiver by ID: {e}")
+            raise InternalServerException("Failed to fetch Receiver from database.") from e
+
+    # API
+    def update_receiver(self, *, receiver_id: UUID, receiver_request: ReceiverRequest) -> ReceiverResponse:
+        try:
+            statement = select(Receiver).where(Receiver.id == receiver_id)
+            receiver = self.session.exec(statement).first()
+            if not receiver:
+                raise NotFoundException(f"Receiver with ID {receiver_id} not found.")
+            
+            receiver.position_id = receiver_request.position_id
+            receiver.institution_id = receiver_request.institution_id
+            receiver.email = receiver_request.email
+            receiver.address = receiver_request.address
+            receiver.contact_no = receiver_request.contact_no
+            
+            self.session.add(receiver)
+            self.session.commit()
+            self.session.refresh(receiver)
+            return ReceiverResponse.model_validate(receiver)
+        except NotFoundException:
+            raise
+        except IntegrityError as e:
+            self.session.rollback()
+            error_msg = str(e.orig)
+            if "receivers_email_key" in error_msg or "receivers.email" in error_msg:
+                raise ConflictException("Email already exists for another receiver.")
+            if "receivers_contact_no_key" in error_msg or "receivers.contact_no" in error_msg:
+                raise ConflictException("Contact number already exists for another receiver.")
+            raise ConflictException("Duplicate value violates unique constraint.")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"[RECEIVER SERVICE] Error updating Receiver: {e}")
+            raise InternalServerException("Failed to update Receiver in database.") from e
+
+    # API
+    def delete_receiver(self, *, receiver_id: UUID) -> None:
+        try:
+            statement = select(Receiver).where(Receiver.id == receiver_id)
+            receiver = self.session.exec(statement).first()
+            if not receiver:
+                raise NotFoundException(f"Receiver with ID {receiver_id} not found.")
+            
+            self.session.delete(receiver)
+            self.session.commit()
+        except NotFoundException:
+            raise
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"[RECEIVER SERVICE] Error deleting Receiver: {e}")
+            raise InternalServerException("Failed to delete Receiver from database.") from e
+
