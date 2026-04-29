@@ -4,10 +4,11 @@ import uuid
 from aiohttp import ClientError
 from datetime import datetime, timezone, timedelta
 from sqlmodel import SQLModel, Session, create_engine
-from src.models import RTITemplate, Institution, Position
+from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest, ReceiverUpdateRequest
 from src.models.request_models import RTITemplateRequest
 from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile
+from sqlalchemy import event
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from src.utils import http_client
 from src.models import Sender
@@ -278,7 +279,102 @@ def position_db():
         # but for tests we often just want the session.
         yield session
 
+
+# receiver fixtures
+@pytest.fixture
+def receiver_db():
+    """Create an in-memory SQLite DB and provide a fresh session with test receivers."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    SQLModel.metadata.create_all(engine)
+    now = datetime.now(timezone.utc)
+    
+    pos1 = Position(id=uuid.uuid4(), name="Position 1", created_at=now, updated_at=now)
+    inst1 = Institution(id=uuid.uuid4(), name="Institution 1", created_at=now, updated_at=now)
+
+    receivers = [
+        Receiver(
+            id=uuid.uuid4(),
+            position=pos1,
+            institution=inst1,
+            email="receiver1@example.com",
+            created_at=now - timedelta(hours=2),
+            updated_at=now - timedelta(hours=2),
+        ),
+        Receiver(
+            id=uuid.uuid4(),
+            position=pos1,
+            institution=inst1,
+            email="receiver2@example.com",
+            created_at=now - timedelta(hours=1),
+            updated_at=now - timedelta(hours=1),
+        ),
+        Receiver(
+            id=uuid.uuid4(),
+            position=pos1,
+            institution=inst1,
+            email="receiver3@example.com",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+    
+    with Session(engine) as session:
+        session.add(pos1)
+        session.add(inst1)
+        session.add_all(receivers)
+        session.commit()
+        yield session
+
+@pytest.fixture
+def make_receiver_request():
+    """Factory for ReceiverRequest instances."""
+
+    def _factory(
+        position_id: uuid.UUID,
+        institution_id: uuid.UUID,
+        email: str | None = "new@example.com",
+        address: str | None = "New Address",
+        contact_no: str | None = "0771234568",
+    ) -> ReceiverRequest:
+        return ReceiverRequest(
+            positionId=position_id,
+            institutionId=institution_id,
+            email=email,
+            address=address,
+            contactNo=contact_no
+        )
+
+    return _factory
+
+@pytest.fixture
+def make_receiver_update_request():
+    """Factory for ReceiverUpdateRequest instances."""
+
+    def _factory(
+        position_id: uuid.UUID | None = None,
+        institution_id: uuid.UUID | None = None,
+        email: str | None = None,
+        address: str | None = None,
+        contact_no: str | None = None,
+    ) -> ReceiverUpdateRequest:
+        # Use dict and then parse to handle exclude_unset=True in model_dump
+        data = {}
+        if position_id is not None: data["positionId"] = position_id
+        if institution_id is not None: data["institutionId"] = institution_id
+        if email is not None: data["email"] = email
+        if address is not None: data["address"] = address
+        if contact_no is not None: data["contactNo"] = contact_no
+        
+        return ReceiverUpdateRequest(**data)
+
+    return _factory
 
 # sender fixtures 
 @pytest.fixture

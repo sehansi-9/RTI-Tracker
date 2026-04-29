@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
-from sqlmodel import SQLModel, Field, func, CheckConstraint
+from sqlmodel import SQLModel, Field, func, CheckConstraint, Relationship
 
 
 class RTITemplate(SQLModel, table=True):
@@ -35,7 +35,11 @@ class Institution(SQLModel, table=True):
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
         description="ISO 8601 timestamp of when the institution was last updated"
     )
+
+    # relationship
+    receivers: List["Receiver"] = Relationship(back_populates="institution")
     
+
 class Position(SQLModel, table=True):
     __tablename__ = "positions"
 
@@ -48,6 +52,40 @@ class Position(SQLModel, table=True):
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
         description="ISO 8601 timestamp of when the position was last updated"
     )
+
+    # relationship
+    receivers: List["Receiver"] = Relationship(back_populates="position")
+
+
+class Receiver(SQLModel, table=True):
+    __tablename__ = "receivers"
+
+    __table_args__ = (
+        CheckConstraint(
+            "email IS NOT NULL OR contact_no IS NOT NULL", name="check_email_or_contact_receiver"
+        ),
+    )
+
+    # table fields
+    id: UUID = Field(primary_key=True, description="Unique identifier for the receiver")
+    position_id: UUID = Field(foreign_key="positions.id", description="ID of the position")
+    institution_id: UUID = Field(foreign_key="institutions.id", description="ID of the institution")
+    email: Optional[str] = Field(None, unique=True, description="Email of the receiver")
+    address: Optional[str] = Field(None, description="Address of the receiver")
+    contact_no: Optional[str] = Field(None, unique=True, description="Contact number of the receiver")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="ISO 8601 timestamp of when the receiver was created",
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        description="ISO 8601 timestamp of when the receiver was last updated",
+    )
+
+    # Relationships
+    position: Position = Relationship(back_populates="receivers")
+    institution: Institution = Relationship(back_populates="receivers")
 
 
 class Sender(SQLModel, table=True):
