@@ -110,7 +110,7 @@ export const rtiRequestsService = {
     const history: RTIStatusHistory = {
       id: crypto.randomUUID(),
       rtiRequestId: newRequest.id,
-      status: { id: 'status-1', name: 'CREATED', createdAt: new Date(), updatedAt: new Date() },
+      status: db.statuses.find(s => s.name.toUpperCase() === 'CREATED') || { id: 'stat-1', name: 'CREATED', createdAt: new Date(), updatedAt: new Date() },
       direction: 'outgoing',
       description: 'Initial RTI Request created.',
       entryTime: new Date(),

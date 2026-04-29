@@ -36,10 +36,15 @@ export const statusService = {
   async create(payload: Partial<RTIStatus>) {
     await sleep();
 
+    const name = payload.name;
+    if (!name) throw new Error('Status name is required');
+    const exists = db.statuses.some(s => s.name.toLowerCase() === name.toLowerCase());
+    if (exists) throw new Error('Status name already exists');
+
     const id = payload.id || crypto.randomUUID();
     const newStatus: RTIStatus = {
       id,
-      name: payload.name || id,
+      name,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -53,9 +58,10 @@ export const statusService = {
     if (index === -1) throw new Error('Status not found');
 
     const name = payload.name;
-    if (!name) throw new Error('Status name is required');
-    const exists = db.statuses.some(s => s.name.toLowerCase() === name.toLowerCase());
-    if (exists) throw new Error('Status name already exists');
+    if (name) {
+      const exists = db.statuses.some(s => s.name.toLowerCase() === name.toLowerCase() && s.id !== id);
+      if (exists) throw new Error('Status name already exists');
+    }
 
     const updatedStatus = {
       ...db.statuses[index],
