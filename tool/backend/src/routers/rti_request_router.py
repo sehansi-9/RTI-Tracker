@@ -5,7 +5,7 @@ from uuid import UUID
 from src.services import RTIRequestService, GithubFileService
 from src.repositories.db import SessionDep
 from src.models.response_models import RTIRequestResponse, RTIRequestListResponse
-from src.models.request_models import RTIRequestRequest
+from src.models.request_models import RTIRequestRequest, RTIRequestUpdateRequest
 from src.models import User, UserRole
 from src.dependencies import RoleChecker
 
@@ -56,3 +56,29 @@ async def create_rti_request_endpoint(
     )
     response = await service.create_rti_request(request_data=request_data)
     return response
+
+@router.put("/rti_requests/{id}", response_model=RTIRequestResponse)
+async def update_rti_request_endpoint(
+    id: Annotated[str, Path(title="ID of the RTI Request")],
+    title: Annotated[Optional[str], Form(description="Title of the RTI Request")] = None,
+    sender_id: Annotated[Optional[UUID], Form(alias="senderId", description="ID of the sender")] = None,
+    receiver_id: Annotated[Optional[UUID], Form(alias="receiverId", description="ID of the receiver")] = None,
+    file: Annotated[Optional[UploadFile], File(description="RTI Request file (pdf or doc)")] = None,
+    description: Annotated[Optional[str], Form(description="Detailed description of the RTI Request")] = None,
+    rti_template_id: Annotated[Optional[UUID], Form(alias="rtiTemplateId", description="ID of the RTI Template")] = None,
+    service: RTIRequestService = Depends(get_rti_request_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
+):
+    request_data = RTIRequestUpdateRequest(
+        id=id,
+        title=title,
+        sender_id=sender_id,
+        receiver_id=receiver_id,
+        file=file,
+        description=description,
+        rti_template_id=rti_template_id
+    )
+    response = await service.update_rti_request(request_data=request_data)
+    return response
+
+    

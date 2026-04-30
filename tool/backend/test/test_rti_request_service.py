@@ -13,7 +13,7 @@ from src.models.table_schemas.table_schemas import (
     RTIRequest, RTIStatus, RTIStatusHistories, RTIDirection, 
     Sender, Receiver, Position, Institution
 )
-from src.models.request_models.rti_requests import RTIRequestRequest
+from src.models.request_models.rti_requests import RTIRequestRequest, RTIRequestUpdateRequest
 from src.models.response_models.rti_requests import RTIRequestResponse
 from src.core.exceptions import (
     InternalServerException, BadRequestException, 
@@ -255,6 +255,96 @@ async def test_get_rti_requests_internal_error(rti_request_db, monkeypatch, make
     
     with pytest.raises(InternalServerException):
         service.get_rti_requests()
+
+# test update rti request
+@pytest.mark.asyncio
+async def test_update_rti_request_success(rti_request_db, make_file_service, make_rti_request_request, make_rti_request_update_request):
+    """Happy path: RTI Request title and description are updated."""
+    sender = rti_request_db.exec(select(Sender)).first()
+    receiver = rti_request_db.exec(select(Receiver)).first()
+    
+    service = RTIRequestService(session=rti_request_db, file_service=make_file_service())
+    
+    # Create one
+    request = make_rti_request_request(sender_id=sender.id, receiver_id=receiver.id)
+    created = await service.create_rti_request(request_data=request)
+    
+    # Update title and description
+    update_request = make_rti_request_update_request(id=str(created.id), title="New Title", description="New Desc")
+    result = await service.update_rti_request(request_data=update_request)
+    
+    assert result.title == "New Title"
+    assert result.description == "New Desc"
+
+@pytest.mark.asyncio
+async def test_update_rti_request_with_file_success(rti_request_db, make_file_service, make_rti_request_request, make_rti_request_update_request):
+    """Updating RTI Request with a new file calls the file service's update_file."""
+    sender = rti_request_db.exec(select(Sender)).first()
+    receiver = rti_request_db.exec(select(Receiver)).first()
+    
+    relative_path = "rti-requests/update/file.pdf"
+    fs = make_file_service(relative_path=relative_path)
+    fs.read_file = AsyncMock(return_value={"content": b"old content", "sha": "old-sha"})
+    
+    service = RTIRequestService(session=rti_request_db, file_service=fs)
+    
+    # Create one
+    request = make_rti_request_request(sender_id=sender.id, receiver_id=receiver.id)
+    created = await service.create_rti_request(request_data=request)
+    
+    # Update with new file
+    update_request = make_rti_request_update_request(id=str(created.id), filename="updated.pdf")
+    result = await service.update_rti_request(request_data=update_request)
+    
+    assert result.id == created.id
+    fs.update_file.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_rti_request_not_found(rti_request_db, make_file_service, make_rti_request_update_request):
+    """NotFoundException raised when updating a non-existent RTI Request."""
+    service = RTIRequestService(session=rti_request_db, file_service=make_file_service())
+    update_request = make_rti_request_update_request(id=str(uuid.uuid4()))
+    
+    with pytest.raises(NotFoundException):
+        await service.update_rti_request(request_data=update_request)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_db_failure_rolls_back_file(rti_request_db, monkeypatch, make_file_service, make_rti_request_request, make_rti_request_update_request):
+    """Verifies file rollback on GitHub when DB commit fails during update."""
+    sender = rti_request_db.exec(select(Sender)).first()
+    receiver = rti_request_db.exec(select(Receiver)).first()
+    
+    old_content = b"old content"
+    old_sha = "old-sha"
+    new_sha = "new-sha"
+    
+    fs = make_file_service(relative_path="rti-requests/dummy/dummy.pdf")
+    fs.read_file = AsyncMock(side_effect=[
+        {"content": old_content, "sha": old_sha}, # first call (old)
+        {"content": b"new content", "sha": new_sha} # second call (new) for rollback
+    ])
+    
+    service = RTIRequestService(session=rti_request_db, file_service=fs)
+    
+    # Create one
+    request = make_rti_request_request(sender_id=sender.id, receiver_id=receiver.id)
+    created = await service.create_rti_request(request_data=request)
+    
+    # Mock DB failure
+    monkeypatch.setattr(rti_request_db, "commit", MagicMock(side_effect=Exception("DB Error")))
+    
+    update_request = make_rti_request_update_request(id=str(created.id), filename="updated.pdf")
+    
+    with pytest.raises(InternalServerException):
+        await service.update_rti_request(request_data=update_request)
+    
+    # Verify rollback call
+    fs.update_file.assert_any_call(
+        file_path="rti-requests/dummy/dummy.pdf",
+        content=old_content,
+        sha=new_sha,
+        message=f"Rollback: restore previous version for {created.id}"
+    )
 
 
 

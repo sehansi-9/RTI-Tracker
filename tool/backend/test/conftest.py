@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from src.utils import http_client
 from src.models import Sender
 from src.models.response_models import SenderResponse
-from src.models.request_models import SenderRequest, InstitutionRequest, RTIRequestRequest
+from src.models.request_models import SenderRequest, InstitutionRequest, RTIRequestRequest, RTIRequestUpdateRequest
 from src.services import SenderService
 
 
@@ -549,6 +549,59 @@ def make_rti_request_request():
         request.receiver_id = receiver_id or uuid.uuid4()
         request.rti_template_id = rti_template_id
         request.file = mock_file
+        return request
+    return _factory
+
+@pytest.fixture
+def make_rti_request_update_request():
+    """Returns a factory for mock RTIRequestUpdateRequest instances."""
+    def _factory(
+        id: str = None,
+        title: str = None,
+        description: str = None,
+        sender_id: uuid.UUID = None,
+        receiver_id: uuid.UUID = None,
+        rti_template_id: uuid.UUID = None,
+        filename: str = None,
+        content_type: str = "application/pdf"
+    ):
+        request = RTIRequestUpdateRequest(
+            id=id or str(uuid.uuid4()),
+            title=title,
+            description=description,
+            sender_id=sender_id,
+            receiver_id=receiver_id,
+            rti_template_id=rti_template_id
+        )
+        
+        # Manually set __pydantic_fields_set__ to simulate 'unset' fields if necessary
+        # However, initializing with named args already sets them in __pydantic_fields_set__.
+        # To simulate 'unset', we should only pass what we want to be 'set'.
+        
+        fields = {}
+        if id: fields["id"] = id
+        if title: fields["title"] = title
+        if description: fields["description"] = description
+        if sender_id: fields["sender_id"] = sender_id
+        if receiver_id: fields["receiver_id"] = receiver_id
+        if rti_template_id: fields["rti_template_id"] = rti_template_id
+        
+        # Re-initialize with only the provided fields to ensure exclude_unset works
+        request = RTIRequestUpdateRequest(**fields)
+        if not id:
+            request.id = str(uuid.uuid4()) # Ensure ID is always set for service fetch
+            request.__pydantic_fields_set__.add("id")
+
+        if filename:
+            mock_file = AsyncMock(spec=UploadFile)
+            mock_file.filename = filename
+            mock_file.content_type = content_type
+            mock_file.read = AsyncMock(return_value=b"updated content")
+            request.file = mock_file
+            request.__pydantic_fields_set__.add("file")
+        else:
+            request.file = None
+            
         return request
     return _factory
 

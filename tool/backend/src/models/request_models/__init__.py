@@ -3,7 +3,7 @@ from .rti_templates import RTITemplateRequest
 from .institutions import InstitutionRequest
 from .receiver import ReceiverRequest, ReceiverUpdateRequest
 from .positions import PositionRequest
-from .rti_requests import RTIRequestRequest
+from .rti_requests import RTIRequestRequest, RTIRequestUpdateRequest
 
 __all__ = [
     "SenderRequest",
@@ -12,6 +12,7 @@ __all__ = [
     "ReceiverRequest",
     "ReceiverUpdateRequest",
     "PositionRequest",
-    "RTIRequestRequest"
+    "RTIRequestRequest",
+    "RTIRequestUpdateRequest"
 ]
 
