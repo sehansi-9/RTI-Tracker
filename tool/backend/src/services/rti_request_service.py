@@ -1,5 +1,4 @@
 import os
-import re
 import logging
 from uuid import UUID, uuid4
 from typing import Dict
@@ -341,56 +340,34 @@ class RTIRequestService:
                 if history.files:
                     all_file_paths.extend(history.files)
 
-            old_files_backup = []
-
-            # 2. Backup and delete files from GitHub
+            # 2. Perform DB Deletion
             try:
-                for file_path in all_file_paths:
-                    file_data = await self.file_service.read_file(file_path)
-                    old_files_backup.append({"path": file_path, "content": file_data["content"]})
-                    
-                for file_path in all_file_paths:
-                    await self.file_service.delete_file(file_path=file_path)
-
-                # 3. Delete histories
+                # Delete histories
                 for history in histories:
                     self.session.delete(history)
 
-                # 4. Delete the request
+                # Delete the request
                 self.session.delete(rti_request)
                 self.session.commit()
 
             except IntegrityError:
                 self.session.rollback()
-                # Restore files to GitHub
-                for backup in old_files_backup:
-                    try:
-                        await self.file_service.create_file(
-                            file_path=backup["path"],
-                            content=backup["content"],
-                            message=f"Rollback: restore file for deleted RTI Request {target_id}"
-                        )
-                    except Exception as ex:
-                        logger.error(f"[RTI SERVICE] Rollback failed to restore {backup['path']}: {ex}")
-                
                 raise ConflictException("Cannot delete RTI Request because it is connected to other entities.")
+
+            # 3. Clean up files from GitHub after successful DB deletion
+            # If this fails, we log it as orphaned files for manual cleanup.
+            for file_path in all_file_paths:
+                try:
+                    await self.file_service.delete_file(file_path=file_path)
+                except Exception as ex:
+                    logger.error(f"[RTI SERVICE] Failed to delete orphaned file from GitHub: {file_path}. Error: {ex}")
 
         except (BadRequestException, NotFoundException, ConflictException):
             raise
         except Exception as e:
             self.session.rollback()
-            # Restore files to GitHub on unexpected failure
-            for backup in old_files_backup:
-                try:
-                    await self.file_service.create_file(
-                        file_path=backup["path"],
-                        content=backup["content"],
-                        message=f"Rollback: restore file for deleted RTI Request {target_id}"
-                    )
-                except Exception as ex:
-                    logger.error(f"[RTI SERVICE] Rollback failed (generic) to restore {backup['path']}: {ex}")
-
             logger.error(f"[RTI SERVICE] Error deleting RTI request: {e}")
             raise InternalServerException(f"Failed to delete RTI request: {e}") from e
     
+
             

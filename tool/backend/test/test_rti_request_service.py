@@ -384,15 +384,12 @@ async def test_delete_rti_request_not_found(rti_request_db, make_file_service):
         await service.delete_rti_request(request_id=str(uuid.uuid4()))
 
 @pytest.mark.asyncio
-async def test_delete_rti_request_conflict_rolls_back_files(rti_request_db, monkeypatch, make_file_service, make_rti_request_request):
-    """IntegrityError during deletion triggers file restoration on GitHub."""
+async def test_delete_rti_request_conflict_no_file_deletion(rti_request_db, monkeypatch, make_file_service, make_rti_request_request):
+    """IntegrityError during deletion prevents GitHub file deletion."""
     sender = rti_request_db.exec(select(Sender)).first()
     receiver = rti_request_db.exec(select(Receiver)).first()
     
-    file_content = b"original content"
     fs = make_file_service()
-    fs.read_file = AsyncMock(return_value={"content": file_content, "sha": "sha"})
-    
     service = RTIRequestService(session=rti_request_db, file_service=fs)
     
     # Create one
@@ -405,12 +402,8 @@ async def test_delete_rti_request_conflict_rolls_back_files(rti_request_db, monk
     with pytest.raises(ConflictException):
         await service.delete_rti_request(request_id=str(created.id))
     
-    # Verify create_file called for rollback
-    fs.create_file.assert_called_with(
-        file_path=fs.delete_file.call_args.kwargs["file_path"],
-        content=file_content,
-        message=f"Rollback: restore file for deleted RTI Request {created.id}"
-    )
+    # Verify delete_file was NEVER called because DB commit failed
+    fs.delete_file.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_delete_rti_request_blocked_by_history(rti_request_db, make_file_service, make_rti_request_request):
