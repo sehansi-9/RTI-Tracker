@@ -1,11 +1,11 @@
-/status:
+/rti-status:
   # create a new status
   post:
-    summary: Create a status
-    operationId: createStatus
-    description: Create a new status.
+    summary: Create an RTI status
+    operationId: createRTIStatus
+    description: Create a new RTI status.
     tags:
-      - Statuses
+      - RTI Statuses
     security:
       - opaqueBearerToken: []
     requestBody:
@@ -14,7 +14,7 @@
       content:
         application/json:
           schema:
-            $ref: "../components/schemas/statuses.yaml#/StatusRequest"
+            $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusRequest"
 
     responses:
       "201":
@@ -22,7 +22,7 @@
         content:
           application/json:
             schema:
-              $ref: "../components/schemas/statuses.yaml#/StatusResponse"
+              $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
               name: Delivery
@@ -39,11 +39,11 @@
 
   # List all statuses
   get:
-    summary: List all statuses
-    operationId: listStatuses
-    description: Returns a paginated list of all statuses.
+    summary: List all RTI statuses
+    operationId: listRTIStatuses
+    description: Returns a paginated list of all RTI statuses.
     tags:
-      - Statuses
+      - RTI Statuses
     security:
       - opaqueBearerToken: []
     parameters:
@@ -55,7 +55,7 @@
         content:
           application/json:
             schema:
-              $ref: "../components/schemas/statuses.yaml#/StatusListResponse"
+              $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusListResponse"
             example:
               data:
                 - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
@@ -72,31 +72,31 @@
       "500":
         $ref: "../components/responses/Errors.yaml#/InternalServerError"
 
-/status/{status_id}:
+/rti-status/{rti_status_id}:
   # Get a single status by ID
   get:
-    summary: Get a status by ID
-    operationId: getStatusById
-    description: Returns a single status identified by its UUID.
+    summary: Get an RTI status by ID
+    operationId: getRTIStatusById
+    description: Returns a single RTI status identified by its UUID.
     tags:
-      - Statuses
+      - RTI Statuses
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: status_id
+      - name: rti_status_id
         in: path
         required: true
         schema:
           type: string
           format: uuid
-        description: ID of the status
+        description: ID of the RTI status
     responses:
       "200":
         description: Status found and returned successfully.
         content:
           application/json:
             schema:
-              $ref: "../components/schemas/statuses.yaml#/StatusResponse"
+              $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
               name: Delivery
@@ -111,35 +111,35 @@
 
   # Update a single status by ID
   put:
-    summary: Update a status
-    operationId: updateStatus
-    description: Updates the name of a status.
+    summary: Update an RTI status
+    operationId: updateRTIStatus
+    description: Updates the name of an RTI status.
     tags:
-      - Statuses
+      - RTI Statuses
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: status_id
+      - name: rti_status_id
         in: path
         required: true
         schema:
           type: string
           format: uuid
-        description: ID of the status
+        description: ID of the RTI status
     requestBody:
       required: true
       description: JSON request body with status metadata.
       content:
         application/json:
           schema:
-            $ref: "../components/schemas/statuses.yaml#/StatusRequest"
+            $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusRequest"
     responses:
       "200":
         description: Status updated successfully.
         content:
           application/json:
             schema:
-              $ref: "../components/schemas/statuses.yaml#/StatusResponse"
+              $ref: "../components/schemas/rti-statuses.yaml#/RTIStatusResponse"
             example:
               id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
               name: Delivery
@@ -158,21 +158,21 @@
 
   # Delete a single status by ID
   delete:
-    summary: Delete a status
-    operationId: deleteStatus
-    description: Permanently deletes a status by UUID. Returns 204 No Content on success. If the resource is linked with some other resources, cannot be deleted.
+    summary: Delete an RTI status
+    operationId: deleteRTIStatus
+    description: Permanently deletes an RTI status by UUID. Returns 204 No Content on success. If the resource is linked with some other resources, cannot be deleted.
     tags:
-      - Statuses
+      - RTI Statuses
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: status_id
+      - name: rti_status_id
         in: path
         required: true
         schema:
           type: string
           format: uuid
-        description: ID of the status
+        description: ID of the RTI status
     responses:
       "204":
         description: Status deleted successfully. No content returned.
