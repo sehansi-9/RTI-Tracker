@@ -1,4 +1,4 @@
-/rti-status:
+/rti_statuses:
   # create a new status
   post:
     summary: Create an RTI status
@@ -72,7 +72,7 @@
       "500":
         $ref: "../components/responses/Errors.yaml#/InternalServerError"
 
-/rti-status/{rti_status_id}:
+/rti_statuses/{rti_status_id}:
   # Get a single status by ID
   get:
     summary: Get an RTI status by ID

@@ -53,10 +53,10 @@ paths:
     $ref: "./paths/receivers.yaml#/~1receivers~1{id}"
 
   # rti statuses paths
-  /rti-status:
-    $ref: "./paths/rti-statuses.yaml#/~1rti-status"
-  /rti-status/{rti_status_id}:
-    $ref: "./paths/rti-statuses.yaml#/~1rti-status~1{rti_status_id}"
+  /rti_statuses:
+    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses"
+  /rti_statuses/{rti_status_id}:
+    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses~1{rti_status_id}"
 
 components:
   securitySchemes:
