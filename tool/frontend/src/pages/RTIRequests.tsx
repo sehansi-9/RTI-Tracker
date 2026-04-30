@@ -2,7 +2,7 @@ import { useState, Fragment, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ChevronLeft, FileText, ArrowRight, Save, Send, User } from 'lucide-react';
-import { generateRTIPDF } from '../utils/pdfUtils';
+import { generateRTIPDF, downloadBlob } from '../utils/pdfUtils';
 import { Button } from '../components/Button';
 import { DataTable } from '../components/DataTable';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -162,15 +162,7 @@ export function RTIRequests() {
 
       const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
 
-      // Download PDF locally
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
+      downloadBlob(blob, fileName);
 
       // Save to backend
       await rtiRequestsService.create({
