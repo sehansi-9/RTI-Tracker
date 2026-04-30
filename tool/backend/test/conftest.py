@@ -4,7 +4,7 @@ import uuid
 from aiohttp import ClientError
 from datetime import datetime, timezone, timedelta
 from sqlmodel import SQLModel, Session, create_engine
-from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest, ReceiverUpdateRequest
+from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest, ReceiverUpdateRequest, RTIRequest, RTIStatus, RTIStatusHistories
 from src.models.request_models import RTITemplateRequest, PositionRequest
 from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile
@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from src.utils import http_client
 from src.models import Sender
 from src.models.response_models import SenderResponse
-from src.models.request_models import SenderRequest, InstitutionRequest
+from src.models.request_models import SenderRequest, InstitutionRequest, RTIRequestRequest
 from src.services import SenderService
 
 
@@ -473,3 +473,82 @@ def make_position_request():
 @pytest.fixture
 def mock_sender_service():
     return MagicMock(spec=SenderService)
+
+@pytest.fixture
+def rti_request_db():
+    """Create an in-memory SQLite DB and provide a fresh session with seeded data."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+        
+    SQLModel.metadata.create_all(engine)
+    now = datetime.now(timezone.utc)
+
+    # 1. Seed Status
+    status_created = RTIStatus(id=uuid.uuid4(), name="CREATED", created_at=now, updated_at=now)
+    
+    # 2. Seed Sender
+    sender = Sender(
+        id=uuid.uuid4(),
+        name="Test Sender",
+        email="sender@example.com",
+        created_at=now,
+        updated_at=now
+    )
+    
+    # 3. Seed Receiver structure
+    pos = Position(id=uuid.uuid4(), name="Test Position", created_at=now, updated_at=now)
+    inst = Institution(id=uuid.uuid4(), name="Test Institution", created_at=now, updated_at=now)
+    receiver = Receiver(
+        id=uuid.uuid4(),
+        position_id=pos.id,
+        institution_id=inst.id,
+        email="receiver@example.com",
+        created_at=now,
+        updated_at=now
+    )
+
+    with Session(engine) as session:
+        session.add(status_created)
+        session.add(sender)
+        session.add(pos)
+        session.add(inst)
+        session.add(receiver)
+        session.commit()
+        # Refresh to ensure IDs are available
+        session.refresh(status_created)
+        session.refresh(sender)
+        session.refresh(receiver)
+        yield session
+
+@pytest.fixture
+def make_rti_request_request():
+    """Returns a factory for mock RTIRequestRequest instances with a fake UploadFile."""
+    def _factory(
+        title: str = "Test RTI Request",
+        description: str = "Test Description",
+        sender_id: uuid.UUID = None,
+        receiver_id: uuid.UUID = None,
+        rti_template_id: uuid.UUID = None,
+        filename: str = "test.pdf",
+        content_type: str = "application/pdf"
+    ):
+        mock_file = AsyncMock()
+        mock_file.filename = filename
+        mock_file.content_type = content_type
+        mock_file.read = AsyncMock(return_value=b"fake pdf content")
+
+        request = MagicMock(spec=RTIRequestRequest)
+        request.title = title
+        request.description = description
+        request.sender_id = sender_id or uuid.uuid4()
+        request.receiver_id = receiver_id or uuid.uuid4()
+        request.rti_template_id = rti_template_id
+        request.file = mock_file
+        return request
+    return _factory
+

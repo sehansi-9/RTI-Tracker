@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.models.common.common import PaginationModel
 from .senders import SenderShortResponse
 from .receivers import ReceiverShortResponse
+from .rti_templates import RTITemplateShortResponse
 
 class RTIRequestResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -15,7 +16,7 @@ class RTIRequestResponse(BaseModel):
     description: Optional[str] = Field(None, description="Detailed description of the RTI Request")
     sender: SenderShortResponse = Field(..., description="Sender object of the RTI Request")
     receiver: ReceiverShortResponse = Field(..., description="Receiver object of the RTI Request")
-    rti_template_id: Optional[UUID] = Field(None, description="ID of the RTI Template")
+    rti_template: Optional[RTITemplateShortResponse] = Field(None, serialization_alias="rtiTemplate", description="RTI Template object")
     created_at: datetime = Field(..., serialization_alias="createdAt", description="ISO 8601 timestamp of when the RTI Request was created")
     updated_at: datetime = Field(..., serialization_alias="updatedAt", description="ISO 8601 timestamp of when the RTI Request was last updated")
 
