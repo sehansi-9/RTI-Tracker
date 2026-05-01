@@ -590,7 +590,6 @@ def make_rti_request_update_request():
         request = RTIRequestUpdateRequest(**fields)
         if not id:
             request.id = str(uuid.uuid4()) # Ensure ID is always set for service fetch
-            request.__pydantic_fields_set__.add("id")
 
         if filename:
             mock_file = AsyncMock(spec=UploadFile)

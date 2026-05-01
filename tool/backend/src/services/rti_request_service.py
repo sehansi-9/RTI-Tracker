@@ -18,6 +18,7 @@ class RTIRequestService:
     """
     This service is responsible for executing all RTI request operations.
     """
+    ALLOWED_FILE_TYPES = [".pdf"]
 
     def __init__(self, session: Session, file_service: GithubFileService):
         self.session = session
@@ -28,6 +29,7 @@ class RTIRequestService:
         *,
         request_data: RTIRequestRequest
     ) -> RTIRequestResponse:
+        committed = False
         try:
             unique_id = uuid4()
             uploaded_file_path: str | None = None
@@ -37,8 +39,8 @@ class RTIRequestService:
                 raise BadRequestException("RTI Request file is required")
 
             _, ext = os.path.splitext(request_data.file.filename)
-            if not ext or ext.lower() not in [".pdf"]:
-                raise BadRequestException(f"{request_data.file.filename} doesn't have a valid extension (.pdf)")
+            if not ext or ext.lower() not in self.ALLOWED_FILE_TYPES:
+                raise BadRequestException(f"{request_data.file.filename} doesn't have a valid extension ({', '.join(self.ALLOWED_FILE_TYPES)})")
 
             # 1.1 Validate foreign keys
             if not self.session.get(Sender, request_data.sender_id):
@@ -94,6 +96,7 @@ class RTIRequestService:
             self.session.add(status_history)
 
             self.session.commit()
+            committed = True
             self.session.refresh(rti_request)
 
             return RTIRequestResponse.model_validate(rti_request)
@@ -101,13 +104,14 @@ class RTIRequestService:
         except (BadRequestException, NotFoundException, ConflictException, InternalServerException):
             raise
         except Exception as e:
-            self.session.rollback()
-            # remove the orphaned file from GitHub if the DB commit failed
-            if uploaded_file_path:
-                try:
-                    await self.file_service.delete_file(file_path=uploaded_file_path)
-                except Exception as ex:
-                    logger.error(f"[RTI SERVICE] Compensating transaction failed — could not delete {uploaded_file_path}: {ex}")
+            if not committed:
+                self.session.rollback()
+                # remove the orphaned file from GitHub if the DB commit failed
+                if uploaded_file_path:
+                    try:
+                        await self.file_service.delete_file(file_path=uploaded_file_path)
+                    except Exception as ex:
+                        logger.error(f"[RTI SERVICE] Compensating transaction failed — could not delete {uploaded_file_path}: {ex}")
 
             if isinstance(e, IntegrityError):
                 logger.error(f"[RTI SERVICE] Integrity error creating RTI request: {e}")
@@ -185,15 +189,15 @@ class RTIRequestService:
         request_data: RTIRequestUpdateRequest
     ) -> RTIRequestResponse:
         """Updates an existing RTI Request."""
+        committed = False
         try:
-            try:
-                target_id = UUID(request_data.id) if isinstance(request_data.id, str) else request_data.id
-            except ValueError:
-                raise BadRequestException(f"Invalid UUID format: {request_data.id}")
+            target_id = request_data.id
+            if not target_id:
+                raise BadRequestException("RTI Request ID is required for update")
 
             rti_request = self.session.get(RTIRequest, target_id)
             if not rti_request:
-                raise NotFoundException(f"RTI Request with id {request_data.id} not found.")
+                raise NotFoundException(f"RTI Request with id {target_id} not found.")
 
             # Check if request has progressed
             statement_histories = select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == target_id)
@@ -203,11 +207,11 @@ class RTIRequestService:
 
             # Validate foreign keys if they are being updated
             update_data = request_data.model_dump(exclude_unset=True)
-            if "sender_id" in update_data and not self.session.get(Sender, update_data["sender_id"]):
+            if update_data.get("sender_id") and not self.session.get(Sender, update_data["sender_id"]):
                 raise NotFoundException(f"Sender with id {update_data['sender_id']} not found.")
-            if "receiver_id" in update_data and not self.session.get(Receiver, update_data["receiver_id"]):
+            if update_data.get("receiver_id") and not self.session.get(Receiver, update_data["receiver_id"]):
                 raise NotFoundException(f"Receiver with id {update_data['receiver_id']} not found.")
-            if "rti_template_id" in update_data and update_data["rti_template_id"] and not self.session.get(RTITemplate, update_data["rti_template_id"]):
+            if update_data.get("rti_template_id") and not self.session.get(RTITemplate, update_data["rti_template_id"]):
                 raise NotFoundException(f"RTI Template with id {update_data['rti_template_id']} not found.")
 
             old_file_data: Dict | None = None
@@ -217,8 +221,8 @@ class RTIRequestService:
             # 1. Update file if provided
             if request_data.file:
                 _, ext = os.path.splitext(request_data.file.filename)
-                if not ext or ext.lower() not in [".pdf"]:
-                    raise BadRequestException(f"{request_data.file.filename} doesn't have a valid extension (.pdf)")
+                if not ext or ext.lower() not in self.ALLOWED_FILE_TYPES:
+                    raise BadRequestException(f"{request_data.file.filename} doesn't have a valid extension ({', '.join(self.ALLOWED_FILE_TYPES)})")
 
                 # Find the 'CREATED' status history to get the current file path
                 status_statement = select(RTIStatus).where(RTIStatus.name == RTIStatusName.CREATED)
@@ -237,7 +241,7 @@ class RTIRequestService:
                     raise InternalServerException("Initial file record not found for this RTI Request.")
 
                 old_file_path = status_history.files[0]
-                content = await request_data.file.read()
+                new_file_content = await request_data.file.read()
 
                 # If extension is same, update in place. If different, create new & delete old.
                 _, old_ext = os.path.splitext(old_file_path)
@@ -247,7 +251,7 @@ class RTIRequestService:
                     old_file_data = await self.file_service.read_file(old_file_path)
                     response = await self.file_service.update_file(
                         file_path=old_file_path,
-                        content=content,
+                        content=new_file_content,
                         sha=old_file_data["sha"],
                         message=f"Update content for RTI Request {target_id}"
                     )
@@ -256,7 +260,7 @@ class RTIRequestService:
                     new_file_path = f"rti-requests/{target_id}/{target_id}{ext.lower()}"
                     response = await self.file_service.create_file(
                         file_path=new_file_path,
-                        content=content,
+                        content=new_file_content,
                         message=f"Update file (new extension) for RTI Request {target_id}"
                     )
                     status_history.files = [new_file_path]
@@ -264,15 +268,21 @@ class RTIRequestService:
 
             # Update other fields
             for key, value in update_data.items():
-                if key not in ["id", "file"] and hasattr(rti_request, key):
+                if key not in ["id", "file"] and value is not None and hasattr(rti_request, key):
                     setattr(rti_request, key, value)
 
             self.session.add(rti_request)
             self.session.commit()
+            committed = True
             
             # If extension changed and commit succeeded, delete the old file
             if new_file_path and old_file_path:
-                await self.file_service.delete_file(file_path=old_file_path)
+                try:
+                    await self.file_service.delete_file(file_path=old_file_path)
+                except Exception as ex:
+                    # We log the failure but do not raise it, as the DB is already committed
+                    # referencing the new file. The old file is now an orphan.
+                    logger.error(f"[RTI SERVICE] Failed to delete old file {old_file_path} from GitHub after commit: {ex}")
 
             self.session.refresh(rti_request)
             return RTIRequestResponse.model_validate(rti_request)
@@ -280,27 +290,28 @@ class RTIRequestService:
         except (BadRequestException, NotFoundException, ConflictException, InternalServerException):
             raise
         except Exception as e:
-            self.session.rollback()
-            
-            # Compensating transactions for file updates
-            if old_file_data and old_file_path:
-                # Restore old version
-                try:
-                    current_file_data = await self.file_service.read_file(old_file_path)
-                    await self.file_service.update_file(
-                        file_path=old_file_path,
-                        content=old_file_data["content"],
-                        sha=current_file_data["sha"],
-                        message=f"Rollback: restore previous version for {target_id}"
-                    )
-                except Exception as ex:
-                    logger.error(f"[RTI SERVICE] Rollback failed (restore old): {ex}")
-            elif new_file_path:
-                # Delete newly created file
-                try:
-                    await self.file_service.delete_file(file_path=new_file_path)
-                except Exception as ex:
-                    logger.error(f"[RTI SERVICE] Rollback failed (delete new): {ex}")
+            if not committed:
+                self.session.rollback()
+                
+                # Compensating transactions for file updates (only if NOT committed)
+                if old_file_data and old_file_path:
+                    # Restore old version
+                    try:
+                        current_file_data = await self.file_service.read_file(old_file_path)
+                        await self.file_service.update_file(
+                            file_path=old_file_path,
+                            content=old_file_data["content"],
+                            sha=current_file_data["sha"],
+                            message=f"Rollback: restore previous version for {target_id}"
+                        )
+                    except Exception as ex:
+                        logger.error(f"[RTI SERVICE] Rollback failed (restore old): {ex}")
+                elif new_file_path:
+                    # Delete newly created file
+                    try:
+                        await self.file_service.delete_file(file_path=new_file_path)
+                    except Exception as ex:
+                        logger.error(f"[RTI SERVICE] Rollback failed (delete new): {ex}")
 
             if isinstance(e, IntegrityError):
                 logger.error(f"[RTI SERVICE] Integrity error updating RTI request: {e}")
@@ -317,14 +328,10 @@ class RTIRequestService:
     ) -> None:
         """Deletes an RTI Request and its associated history and files."""
         try:
-            try:
-                target_id = UUID(request_id) if isinstance(request_id, str) else request_id
-            except ValueError:
-                raise BadRequestException(f"Invalid UUID format: {request_id}")
-
+            target_id = request_id
             rti_request = self.session.get(RTIRequest, target_id)
             if not rti_request:
-                raise NotFoundException(f"RTI Request with id {request_id} not found.")
+                raise NotFoundException(f"RTI Request with id {target_id} not found.")
 
             # 1. Fetch all histories and their files
             statement = select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == target_id)
