@@ -1,8 +1,8 @@
 # test/test_rti_request_history_service.py
 import uuid
 import pytest
-from unittest.mock import MagicMock
-from sqlalchemy.exc import OperationalError
+from unittest.mock import MagicMock, AsyncMock
+from sqlalchemy.exc import OperationalError, IntegrityError
 from sqlmodel import select, Session, create_engine, SQLModel
 from datetime import datetime, timezone, timedelta
 
@@ -13,8 +13,9 @@ from src.models.table_schemas.table_schemas import (
 from src.models.response_models.rti_request_histories import (
     RTIRequestHistoryResponse, RTIRequestHistoryListResponse
 )
+from src.models.request_models.rti_request_histories import RTIRequestHistoryRequest
 from src.core.exceptions import (
-    InternalServerException, BadRequestException, NotFoundException
+    InternalServerException, BadRequestException, NotFoundException, ConflictException
 )
 
 def create_test_rti_request(session: Session):
@@ -117,3 +118,205 @@ async def test_get_rti_request_histories_internal_error(rti_request_db, monkeypa
     with pytest.raises(InternalServerException) as exc:
         service.get_rti_request_histories(rti_request_id=rti_request.id)
     assert "Failed to fetch RTI request histories" in str(exc.value)
+
+
+# test create rti request history
+@pytest.mark.asyncio
+async def test_create_rti_request_history_success(rti_request_db, make_file_service, make_upload_file):
+    """Happy path: RTI Request History is created with files, entry_time and exit_time."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    fs = make_file_service(relative_path="rti-requests/hist/123.pdf")
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    now = datetime.now(timezone.utc)
+    entry_time = now - timedelta(hours=1)
+    exit_time = now
+    
+    files = [make_upload_file(filename="doc1.pdf"), make_upload_file(filename="doc2.pdf")]
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.received,
+        description="Response received",
+        entryTime=entry_time,
+        exitTime=exit_time,
+        files=files
+    )
+    
+    result = await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    assert isinstance(result, RTIRequestHistoryResponse)
+    assert result.description == "Response received"
+    assert result.direction == RTIDirection.received
+    assert result.rti_status.id == status.id
+    assert len(result.files) == 2
+    
+    # Normalize datetimes for comparison
+    assert result.entry_time.replace(tzinfo=timezone.utc) == entry_time.replace(tzinfo=timezone.utc)
+    assert result.exit_time.replace(tzinfo=timezone.utc) == exit_time.replace(tzinfo=timezone.utc)
+    
+    # Verify file service was called twice
+    assert fs.create_file.call_count == 2
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_request_not_found(rti_request_db, make_file_service):
+    """NotFoundException raised when parent RTI Request doesn't exist."""
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc)
+    )
+    
+    with pytest.raises(NotFoundException) as exc:
+        await service.create_rti_request_history(rti_request_id=uuid.uuid4(), request_data=request)
+    assert "RTI Request" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_status_not_found(rti_request_db, make_file_service):
+    """NotFoundException raised when provided RTI Status ID doesn't exist."""
+    rti_request = create_test_rti_request(rti_request_db)
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryRequest(
+        statusId=uuid.uuid4(),
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc)
+    )
+    
+    with pytest.raises(NotFoundException) as exc:
+        await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "RTI Status" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_invalid_file_extension(rti_request_db, make_file_service, make_upload_file):
+    """BadRequestException raised for unsupported file extensions."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    files = [make_upload_file(filename="malicious.exe")]
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc),
+        files=files
+    )
+    
+    with pytest.raises(BadRequestException) as exc:
+        await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "valid extension" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_db_failure_rolls_back_files(rti_request_db, monkeypatch, make_file_service, make_upload_file):
+    """Verifies that uploaded files are deleted from GitHub if DB commit fails."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    fs = make_file_service(relative_path="to-be-deleted.pdf")
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    # Mock commit failure
+    monkeypatch.setattr(rti_request_db, "commit", MagicMock(side_effect=Exception("DB Error")))
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc),
+        files=[make_upload_file(filename="test.pdf")]
+    )
+    
+    with pytest.raises(InternalServerException):
+        await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    # Verify file service delete was called
+    fs.delete_file.assert_called_once_with(file_path="to-be-deleted.pdf")
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_without_files(rti_request_db, make_file_service):
+    """Creating history without files is successful."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc),
+        files=[]
+    )
+    
+    result = await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert result.files == []
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_default_entry_time(rti_request_db, make_file_service):
+    """entry_time defaults to current time if not provided in the request."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    # Passing None for entryTime (Pydantic validator should fill it)
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=None,
+        files=[]
+    )
+    
+    result = await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert result.entry_time is not None
+    assert isinstance(result.entry_time, datetime)
+    # Check if it's close to now
+    assert (datetime.now(timezone.utc) - result.entry_time.replace(tzinfo=timezone.utc)).total_seconds() < 5
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_integrity_error(rti_request_db, monkeypatch, make_file_service):
+    """ConflictException raised on database integrity error (e.g. duplicate UUID)."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    # Mock commit to raise IntegrityError
+    monkeypatch.setattr(rti_request_db, "commit", MagicMock(side_effect=IntegrityError("Conflict", None, None)))
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc),
+        files=[]
+    )
+    
+    with pytest.raises(ConflictException) as exc:
+        await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "integrity error" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_create_rti_request_history_file_upload_failure(rti_request_db, make_file_service, make_upload_file):
+    """InternalServerException raised if file service fails during upload."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    # Mock file service to raise exception on create_file
+    fs = make_file_service()
+    fs.create_file = AsyncMock(side_effect=Exception("Upload Failed"))
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    request = RTIRequestHistoryRequest(
+        statusId=status.id,
+        direction=RTIDirection.sent,
+        entryTime=datetime.now(timezone.utc),
+        files=[make_upload_file(filename="test.pdf")]
+    )
+    
+    with pytest.raises(InternalServerException) as exc:
+        await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "Failed to create RTI request history" in str(exc.value)
+
+
