@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Sequence
 from src.models import PaginationModel
 
-
 class RTIStatusResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
     # attributes
@@ -26,10 +25,14 @@ class RTIStatusResponse(BaseModel):
         json_schema_extra={"example":"2026-03-31T09:00:00Z"},
         description="ISO 8601 timestamp of when the status was last updated",
     )
-
-
 class RTIStatusListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
     # attributes
     data: Sequence[RTIStatusResponse] = Field([], description="List of statuses.")
     pagination: PaginationModel = Field(..., description="Pagination metadata.")
+
+class RTIStatusShortResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+    id: UUID = Field(..., description="Unique identifier for the RTI Status")
+    name: str = Field(..., description="Name of the RTI Status")
