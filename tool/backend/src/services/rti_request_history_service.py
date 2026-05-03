@@ -1,8 +1,6 @@
 import logging
 from uuid import UUID
-
 from sqlmodel import Session, select, func
-
 from src.models import PaginationModel
 from src.services.github_file_service import GithubFileService
 from src.models.table_schemas.table_schemas import RTIRequest, RTIStatusHistories
@@ -13,7 +11,6 @@ from src.models.response_models.rti_request_histories import (
 from src.core.exceptions import InternalServerException, NotFoundException, BadRequestException
 
 logger = logging.getLogger(__name__)
-
 
 class RTIRequestHistoryService:
     """
@@ -34,7 +31,6 @@ class RTIRequestHistoryService:
         page: int = 1,
         page_size: int = 10,
     ) -> RTIRequestHistoryListResponse:
-        """Fetches a paginated list of RTI Status History records for a given RTI Request."""
         try:
             # Validate that the parent RTI Request exists
             try:
@@ -48,11 +44,11 @@ class RTIRequestHistoryService:
 
             offset = (page - 1) * page_size
 
-            # Fetch paginated history records ordered by entry_time ascending
+            # Fetch paginated history records ordered by created_at descending
             statement_records = (
                 select(RTIStatusHistories)
                 .where(RTIStatusHistories.rti_request_id == target_id)
-                .order_by(RTIStatusHistories.entry_time.asc())
+                .order_by(RTIStatusHistories.created_at.desc())
                 .offset(offset)
                 .limit(page_size)
             )
