@@ -498,4 +498,97 @@ async def test_update_rti_request_history_db_failure_rolls_back_new_files(rti_re
         assert call.kwargs['file_path'] != existing_file
 
 
+@pytest.mark.asyncio
+async def test_delete_rti_request_history_success(rti_request_db, make_file_service):
+    """Deleting a history record successfully cleans up DB and GitHub files."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    file_path = "rti-requests/to-be-nuked.pdf"
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[file_path]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    await service.delete_rti_request_history(rti_request_id=rti_request.id, history_id=history.id)
+    
+    # Verify DB record is gone
+    deleted_history = rti_request_db.get(RTIStatusHistories, history.id)
+    assert deleted_history is None
+    
+    # Verify GitHub deletion was called
+    fs.delete_file.assert_called_once_with(file_path=file_path)
+
+@pytest.mark.asyncio
+async def test_delete_rti_request_history_wrong_rti(rti_request_db, make_file_service):
+    """Fails when attempting to delete a history record via the wrong RTI Request."""
+    rti_request1 = create_test_rti_request(rti_request_db)
+    rti_request2 = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request1.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    with pytest.raises(BadRequestException) as exc:
+        await service.delete_rti_request_history(rti_request_id=rti_request2.id, history_id=history.id)
+    assert "does not belong to RTI Request" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_delete_rti_request_history_not_found(rti_request_db, make_file_service):
+    """Fails when deleting a non-existent history record."""
+    rti_request = create_test_rti_request(rti_request_db)
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    with pytest.raises(NotFoundException):
+        await service.delete_rti_request_history(rti_request_id=rti_request.id, history_id=uuid.uuid4())
+
+@pytest.mark.asyncio
+async def test_delete_rti_request_history_db_failure(rti_request_db, make_file_service, monkeypatch):
+    """GitHub files are NOT deleted if DB record deletion fails."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    file_path = "rti-requests/safe.pdf"
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[file_path]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    # Mock commit failure
+    monkeypatch.setattr(rti_request_db, "commit", MagicMock(side_effect=Exception("DB Failure")))
+    
+    fs = make_file_service()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    with pytest.raises(InternalServerException):
+        await service.delete_rti_request_history(rti_request_id=rti_request.id, history_id=history.id)
+    
+    # Verify GitHub deletion was NOT called
+    fs.delete_file.assert_not_called()
+
+
 

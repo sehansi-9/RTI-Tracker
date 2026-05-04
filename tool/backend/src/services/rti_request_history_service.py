@@ -300,3 +300,47 @@ class RTIRequestHistoryService:
 
             logger.error(f"[RTI HISTORY SERVICE] Error updating history {request_data.id}: {e}")
             raise InternalServerException(f"Failed to update RTI request history: {e}") from e
+
+    # API
+    async def delete_rti_request_history(
+        self,
+        *,
+        rti_request_id: UUID,
+        history_id: UUID
+    ) -> None:
+        """Deletes an RTI Status History record and its associated files."""
+        committed = False
+        files_to_delete: list[str] = []
+        try:
+            history = self.session.get(RTIStatusHistories, history_id)
+            if not history:
+                raise NotFoundException(f"RTI Request History with id {history_id} not found.")
+
+            # Validation: Ensure the history record belongs to the specified RTI Request
+            if history.rti_request_id != rti_request_id:
+                raise BadRequestException(f"History record {history_id} does not belong to RTI Request {rti_request_id}")
+
+            files_to_delete = list(history.files) if history.files else []
+
+            self.session.delete(history)
+            self.session.commit()
+            committed = True
+
+            # Physically delete files from GitHub after successful DB commit
+            if files_to_delete:
+                for file_path in files_to_delete:
+                    try:
+                        await self.file_service.delete_file(file_path=file_path)
+                    except Exception as ex:
+                        # Log but don't fail, as the DB record is already gone
+                        logger.error(f"[RTI HISTORY SERVICE] Failed to delete orphaned file {file_path} from GitHub during record deletion: {ex}")
+
+        except (BadRequestException, NotFoundException, InternalServerException):
+            raise
+        except Exception as e:
+            if not committed:
+                self.session.rollback()
+
+            logger.error(f"[RTI HISTORY SERVICE] Error deleting history {history_id}: {e}")
+            raise InternalServerException(f"Failed to delete RTI request history: {e}") from e
+

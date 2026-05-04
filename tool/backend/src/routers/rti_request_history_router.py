@@ -104,3 +104,17 @@ async def update_rti_request_history_endpoint(
         request_data=request_data
     )
 
+@router.delete("/rti_requests/{rti_id}/histories/{history_id}", status_code=204)
+async def delete_rti_request_history_endpoint(
+    rti_id: Annotated[UUID, Path(title="ID of the RTI Request")],
+    history_id: Annotated[UUID, Path(title="ID of the RTI Status History")],
+    service: RTIRequestHistoryService = Depends(get_rti_request_history_service),
+    user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER])),
+):
+    await service.delete_rti_request_history(
+        rti_request_id=rti_id,
+        history_id=history_id
+    )
+    return None
+
+
