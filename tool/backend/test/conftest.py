@@ -11,7 +11,7 @@ from fastapi import UploadFile
 from sqlalchemy import event
 from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 from src.utils import http_client
-from src.models import Sender
+from src.models import Sender, RTIStatus
 from src.models.response_models import SenderResponse
 from src.models.request_models import SenderRequest, InstitutionRequest, RTIRequestRequest, RTIRequestUpdateRequest
 from src.services import SenderService
@@ -474,6 +474,50 @@ def make_position_request():
 def mock_sender_service():
     return MagicMock(spec=SenderService)
 
+# status fixtures
+@pytest.fixture
+def make_rti_status_request():
+    """Factory for StatusRequest instances."""
+    from src.models.request_models import RTIStatusRequest
+
+    def _factory(name: str = "Dispatched") -> RTIStatusRequest:
+        return RTIStatusRequest(name=name)
+
+    return _factory
+
+
+@pytest.fixture
+def rti_status_db():
+    """In-memory DB seeded with three Status rows for service-level tests."""
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    now = datetime.now(timezone.utc)
+
+    statuses = [
+        RTIStatus(
+            id=uuid.uuid4(),
+            name="Pending",
+            created_at=now - timedelta(hours=2),
+            updated_at=now - timedelta(hours=2),
+        ),
+        RTIStatus(
+            id=uuid.uuid4(),
+            name="Delivery",
+            created_at=now - timedelta(hours=1),
+            updated_at=now - timedelta(hours=1),
+        ),
+        RTIStatus(
+            id=uuid.uuid4(),
+            name="Completed",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+
+    with Session(engine) as session:
+        session.add_all(statuses)
+        session.commit()
+        yield session
 @pytest.fixture
 def rti_request_db():
     """Create an in-memory SQLite DB and provide a fresh session with seeded data."""

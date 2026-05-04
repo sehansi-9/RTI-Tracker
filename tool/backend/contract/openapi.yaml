@@ -52,11 +52,23 @@ paths:
   /receivers/{id}:
     $ref: "./paths/receivers.yaml#/~1receivers~1{id}"
 
+  # rti statuses paths
+  /rti_statuses:
+    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses"
+  /rti_statuses/{id}:
+    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses~1{id}"
+
 components:
   securitySchemes:
     opaqueBearerToken:
       $ref: "./components/securitySchemes/security.yaml#/opaqueBearerToken"
   schemas:
+    RTIStatusRequest:
+      $ref: "./components/schemas/rti-statuses.yaml#/RTIStatusRequest"
+    RTIStatusResponse:
+      $ref: "./components/schemas/rti-statuses.yaml#/RTIStatusResponse"
+    RTIStatusListResponse:
+      $ref: "./components/schemas/rti-statuses.yaml#/RTIStatusListResponse"
     RTITemplateRequest:
       $ref: "./components/schemas/RTITemplates.yaml#/RTITemplateRequest"
     RTITemplateResponse:

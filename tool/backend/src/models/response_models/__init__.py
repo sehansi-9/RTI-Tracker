@@ -4,6 +4,7 @@ from .positions import PositionListResponse, PositionResponse, PositionShortResp
 from .senders import SenderResponse, SenderListResponse, SenderShortResponse
 from .receivers import ReceiverListResponse, ReceiverResponse, ReceiverShortResponse
 from .rti_requests import RTIRequestResponse, RTIRequestListResponse
+from .rti_statuses import RTIStatusListResponse, RTIStatusResponse
 
 __all__ = [
     "RTITemplateResponse",
@@ -22,6 +23,8 @@ __all__ = [
     "ReceiverListResponse",
     "ReceiverShortResponse",
     "RTIRequestResponse",
-    "RTIRequestListResponse"
+    "RTIRequestListResponse",
+    "RTIStatusListResponse",
+    "RTIStatusResponse"
 ]
 

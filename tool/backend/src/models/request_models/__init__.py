@@ -4,6 +4,7 @@ from .institutions import InstitutionRequest
 from .receiver import ReceiverRequest, ReceiverUpdateRequest
 from .positions import PositionRequest
 from .rti_requests import RTIRequestRequest, RTIRequestUpdateRequest
+from .rti_statuses import RTIStatusRequest
 
 __all__ = [
     "SenderRequest",
@@ -13,6 +14,7 @@ __all__ = [
     "ReceiverUpdateRequest",
     "PositionRequest",
     "RTIRequestRequest",
-    "RTIRequestUpdateRequest"
+    "RTIRequestUpdateRequest",
+    "RTIStatusRequest"
 ]
 

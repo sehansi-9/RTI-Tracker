@@ -5,6 +5,7 @@ from .github_file_service import GithubFileService
 from .sender_service import SenderService
 from .receiver_service import ReceiverService
 from .rti_request_service import RTIRequestService
+from .rti_status_service import RTIStatusService
 
 __all__ = [
     "RTITemplateService",
@@ -13,7 +14,8 @@ __all__ = [
     "PositionService",
     "SenderService",
     "ReceiverService",
-    "RTIRequestService"
+    "RTIRequestService",
+    "RTIStatusService"
 ]
 
 
