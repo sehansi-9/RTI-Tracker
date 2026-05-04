@@ -27,7 +27,14 @@ export function Templates() {
     try {
       const response = await templateService.getRTITemplates(page, 10);
 
-      setTemplates(response.data);
+      setTemplates(prev => {
+        // Keep any newly created but unsaved templates (IDs starting with 'new-')
+        const newTemplates = prev.filter(t => t.id.startsWith('new-'));
+        // Avoid duplicates if the server already returned the saved version
+        const serverTemplates = response.data.filter(st => !newTemplates.some(nt => nt.title === st.title));
+        return [...newTemplates, ...serverTemplates];
+      });
+      
       setPagination(response.pagination);
 
       if (response.data.length > 0 && !selectedTemplate) {
@@ -142,17 +149,32 @@ export function Templates() {
   const confirmDelete = async () => {
     if (!templateToDelete) return;
 
+    const idToDelete = templateToDelete.id;
+    const isNew = idToDelete.startsWith('new-');
     setTemplateToDelete(null);
 
     try {
-      await templateService.deleteRTITemplate(templateToDelete.id);
+      if (!isNew) {
+        await templateService.deleteRTITemplate(idToDelete);
+      }
+      
       toast.success('Template deleted');
+
+      // Immediately remove from local state
+      setTemplates(prev => prev.filter(t => t.id !== idToDelete));
+
+      if (isNew) {
+        if (selectedTemplate?.id === idToDelete) {
+          setSelectedTemplate(templates.length > 1 ? (templates[0].id === idToDelete ? templates[1] : templates[0]) : null);
+        }
+        return;
+      }
 
       const pageToFetch = templates.length === 1 && pagination.page > 1
         ? pagination.page - 1
         : pagination.page;
 
-      const isDeletingSelected = selectedTemplate?.id === templateToDelete.id;
+      const isDeletingSelected = selectedTemplate?.id === idToDelete;
 
       const newData = await fetchTemplates(pageToFetch);
 
@@ -201,8 +223,9 @@ export function Templates() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {templates.map((template: Template) => (
-                <div key={template.id} className="group relative">
+                <div key={template.id} className="group relative" data-testid={`template-row-${template.id}`}>
                   <button
+                    data-testid="template-list-item"
                     onClick={() => handleSelect(template)}
                     className={`w-full text-left p-4 border-b border-gray-100 text-sm transition-all relative ${selectedTemplate?.id === template.id
                       ? 'bg-blue-50 text-blue-900 font-medium'
@@ -252,13 +275,21 @@ export function Templates() {
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
                       onBlur={() => setIsEditingName(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setIsEditingName(false);
+                        if (e.key === 'Escape') {
+                          setEditedName(selectedTemplate.title);
+                          setIsEditingName(false);
+                        }
+                      }}
                     />
                   ) : (
                     <span
+                      data-testid="template-title-span"
                       onClick={() => setIsEditingName(true)}
                       className="font-semibold text-sm text-gray-700 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
                     >
-                      {editedName}
+                      {editedName || selectedTemplate.title}
                     </span>
                   )}
                 </div>

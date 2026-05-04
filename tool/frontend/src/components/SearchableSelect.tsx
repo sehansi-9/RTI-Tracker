@@ -104,6 +104,7 @@ export function SearchableSelect({
             filtered.map(opt => (
               <div
                 key={opt.id}
+                data-testid="select-option"
                 className={`px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm ${
                   opt.id === value ? 'bg-blue-50 text-blue-900 font-medium' : 'text-gray-700'
                 }`}

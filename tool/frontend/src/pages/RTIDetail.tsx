@@ -238,13 +238,13 @@ export function RTIDetail() {
                     <div className="flex items-start gap-3">
                       <User className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{request?.sender?.name}</p>
+                        <p data-testid="sender-name" className="text-sm font-bold text-gray-900">{request?.sender?.name}</p>
                         <p className="text-xs text-gray-500">Applicant</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      <p className="text-xs text-gray-600">{request?.sender?.email || 'No email'}</p>
+                      <p data-testid="sender-email" className="text-xs text-gray-600">{request?.sender?.email || 'No email'}</p>
                     </div>
                   </div>
                 </div>
@@ -256,8 +256,8 @@ export function RTIDetail() {
                     <div className="flex items-start gap-3">
                       <Building2 className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{request?.receiver?.institution.name}</p>
-                        <p className="text-xs text-gray-500">{request?.receiver?.position.name}</p>
+                        <p data-testid="receiver-institution" className="text-sm font-bold text-gray-900">{request?.receiver?.institution.name}</p>
+                        <p data-testid="receiver-position" className="text-xs text-gray-500">{request?.receiver?.position.name}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

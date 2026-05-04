@@ -268,6 +268,7 @@ export function Receivers() {
                   onChange={field.onChange}
                   options={institutionsHook.data}
                   onAddSpecial={n => startRedirect('institution', n)}
+                  addLabel="Add Institution"
                 />
               )}
             />
@@ -285,6 +286,7 @@ export function Receivers() {
                   onChange={field.onChange}
                   options={positionsHook.data}
                   onAddSpecial={n => startRedirect('position', n)}
+                  addLabel="Add Position"
                 />
               )}
             />
