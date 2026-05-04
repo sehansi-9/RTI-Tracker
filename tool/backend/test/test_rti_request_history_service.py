@@ -13,7 +13,10 @@ from src.models.table_schemas.table_schemas import (
 from src.models.response_models.rti_request_histories import (
     RTIRequestHistoryResponse, RTIRequestHistoryListResponse
 )
-from src.models.request_models.rti_request_histories import RTIRequestHistoryRequest
+from src.models.request_models.rti_request_histories import (
+    RTIRequestHistoryRequest, 
+    RTIRequestHistoryUpdateRequest
+)
 from src.core.exceptions import (
     InternalServerException, BadRequestException, NotFoundException, ConflictException
 )
@@ -322,5 +325,177 @@ async def test_create_rti_request_history_file_upload_failure(rti_request_db, ma
     with pytest.raises(InternalServerException) as exc:
         await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
     assert "Failed to create RTI request history" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_success(rti_request_db, make_file_service):
+    """Updating basic fields of a history record is successful."""
+    rti_request = create_test_rti_request(rti_request_db)
+    
+    # Ensure at least two statuses exist
+    status_list = rti_request_db.exec(select(RTIStatus)).all()
+    if len(status_list) < 2:
+        status2 = RTIStatus(id=uuid.uuid4(), name="Status 2", description="Second status")
+        rti_request_db.add(status2)
+        rti_request_db.commit()
+        status_list = rti_request_db.exec(select(RTIStatus)).all()
+        
+    status1 = status_list[0]
+    status2 = status_list[1]
+
+    
+    # Create initial history
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status1.id,
+        direction=RTIDirection.sent,
+        description="Initial",
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    new_entry_time = datetime.now(timezone.utc) + timedelta(hours=1)
+    new_exit_time = datetime.now(timezone.utc) + timedelta(hours=2)
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        statusId=status2.id,
+        direction=RTIDirection.received,
+        description="Updated",
+        entryTime=new_entry_time,
+        exitTime=new_exit_time
+    )
+    
+    response = await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    assert response.id == history.id
+    assert response.rti_status.id == status2.id
+    assert response.direction == RTIDirection.received
+
+    assert response.description == "Updated"
+    assert response.entry_time.replace(tzinfo=timezone.utc).timestamp() == pytest.approx(new_entry_time.replace(tzinfo=timezone.utc).timestamp(), abs=1)
+    assert response.exit_time.replace(tzinfo=timezone.utc).timestamp() == pytest.approx(new_exit_time.replace(tzinfo=timezone.utc).timestamp(), abs=1)
+
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_add_delete_files(rti_request_db, make_file_service, make_upload_file, monkeypatch):
+    """Adding new files and deleting existing ones works correctly."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    existing_file = "rti-requests/old-file.pdf"
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[existing_file]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service(relative_path="new-file.pdf")
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        filesToAdd=[make_upload_file(filename="test.pdf")],
+        filesToDelete=[existing_file]
+    )
+    
+    response = await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    # Check DB updated
+    assert len(response.files) == 1
+    assert "new-file.pdf" in response.files
+    assert existing_file not in response.files
+    
+    # Check physical deletion from GitHub was called
+    fs.delete_file.assert_called_with(file_path=existing_file)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_wrong_rti_request(rti_request_db, make_file_service):
+    """Attempting to update a history record via the wrong RTI Request fails."""
+    rti_request1 = create_test_rti_request(rti_request_db)
+    rti_request2 = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request1.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryUpdateRequest(id=history.id, description="Try to steal")
+    
+    with pytest.raises(BadRequestException) as exc:
+        await service.update_rti_request_history(rti_request_id=rti_request2.id, request_data=request)
+    assert "does not belong to RTI Request" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_not_found(rti_request_db, make_file_service):
+    """Updating a non-existent history record fails."""
+    rti_request = create_test_rti_request(rti_request_db)
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryUpdateRequest(id=uuid.uuid4(), description="Missing")
+    
+    with pytest.raises(NotFoundException):
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_db_failure_rolls_back_new_files(rti_request_db, make_file_service, make_upload_file, monkeypatch):
+    """If DB commit fails during update, new files are cleaned up but old files stay safe."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    existing_file = "rti-requests/stay-safe.pdf"
+    history = RTIStatusHistories(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[existing_file]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service(relative_path="orphaned.pdf")
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    # Mock commit failure
+    monkeypatch.setattr(rti_request_db, "commit", MagicMock(side_effect=Exception("DB Failure")))
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        filesToAdd=[make_upload_file(filename="new.pdf")],
+        filesToDelete=[existing_file]
+    )
+    
+    with pytest.raises(InternalServerException):
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    # Capture the actual path that was used for the new upload
+    new_upload_path = fs.create_file.call_args.kwargs['file_path']
+    
+    # Verify file service delete was called ONLY for the new file
+    # The existing file should NOT be deleted because the commit failed
+    fs.delete_file.assert_called_once_with(file_path=new_upload_path)
+    
+    # Double check that delete_file was NOT called for the existing_file
+    for call in fs.delete_file.call_args_list:
+        assert call.kwargs['file_path'] != existing_file
+
 
 
