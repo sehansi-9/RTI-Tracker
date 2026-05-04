@@ -234,8 +234,12 @@ async def test_create_rti_request_history_db_failure_rolls_back_files(rti_reques
     with pytest.raises(InternalServerException):
         await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
     
-    # Verify file service delete was called
-    fs.delete_file.assert_called_once_with(file_path="to-be-deleted.pdf")
+    # Get the actual path that was passed to create_file
+    uploaded_path = fs.create_file.call_args.kwargs['file_path']
+    
+    # Verify file service delete was called with that same path
+    fs.delete_file.assert_called_once_with(file_path=uploaded_path)
+
 
 @pytest.mark.asyncio
 async def test_create_rti_request_history_without_files(rti_request_db, make_file_service):
