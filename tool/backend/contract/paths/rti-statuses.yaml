@@ -72,7 +72,7 @@
       "500":
         $ref: "../components/responses/Errors.yaml#/InternalServerError"
 
-/rti_statuses/{rti_status_id}:
+/rti_statuses/{id}:
   # Get a single status by ID
   get:
     summary: Get an RTI status by ID
@@ -83,13 +83,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: rti_status_id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: ID of the RTI status
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "200":
         description: Status found and returned successfully.
@@ -119,13 +113,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: rti_status_id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: ID of the RTI status
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     requestBody:
       required: true
       description: JSON request body with status metadata.
@@ -166,13 +154,7 @@
     security:
       - opaqueBearerToken: []
     parameters:
-      - name: rti_status_id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: ID of the RTI status
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
     responses:
       "204":
         description: Status deleted successfully. No content returned.

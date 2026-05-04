@@ -55,8 +55,8 @@ paths:
   # rti statuses paths
   /rti_statuses:
     $ref: "./paths/rti-statuses.yaml#/~1rti_statuses"
-  /rti_statuses/{rti_status_id}:
-    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses~1{rti_status_id}"
+  /rti_statuses/{id}:
+    $ref: "./paths/rti-statuses.yaml#/~1rti_statuses~1{id}"
 
 components:
   securitySchemes:
