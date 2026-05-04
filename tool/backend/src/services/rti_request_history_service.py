@@ -184,7 +184,7 @@ class RTIRequestHistoryService:
                 raise ConflictException("Database integrity error occurred while creating the RTI Request History.") from e
 
             logger.error(f"[RTI HISTORY SERVICE] Error creating history for RTI Request {rti_request_id}: {e}")
-            raise InternalServerException(f"Failed to create RTI request history: {e}") from e
+            raise InternalServerException(f"Failed to create RTI request history.") from e
 
     # API
     async def update_rti_request_history(
@@ -207,20 +207,20 @@ class RTIRequestHistoryService:
                 raise BadRequestException(f"History record {target_id} does not belong to RTI Request {rti_request_id}")
 
             # Validate Status existence if provided
-            if request_data.status_id:
+            if request_data.status_id is not None:
                 status = self.session.get(RTIStatus, request_data.status_id)
                 if not status:
                     raise NotFoundException(f"RTI Status with id {request_data.status_id} not found.")
                 history.status_id = request_data.status_id
 
             # Update other fields if provided
-            if request_data.direction:
+            if request_data.direction is not None:
                 history.direction = request_data.direction
             if request_data.description is not None:
                 history.description = request_data.description
-            if request_data.entry_time:
+            if request_data.entry_time is not None:
                 history.entry_time = request_data.entry_time
-            if request_data.exit_time:
+            if request_data.exit_time is not None:
                 history.exit_time = request_data.exit_time
 
             # Create a NEW list instance so SQLAlchemy detects the change to the JSON column
@@ -245,7 +245,7 @@ class RTIRequestHistoryService:
                         )
                 
                 # Upload new files
-                base_idx = len(history.files)
+                base_idx = len(history.files) if history.files else 0
                 for i, file in enumerate(request_data.files_to_add):
                     _, ext = os.path.splitext(file.filename)
                     file_path = f"rti-requests/{history.rti_request_id}/histories/{target_id}/{target_id}_u{base_idx + i}{ext.lower()}"
