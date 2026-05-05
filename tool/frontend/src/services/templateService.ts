@@ -22,7 +22,7 @@ export const templateService = {
   /**
    * Fetches templates with pagination
    */
-  getRTITemplates: async (page: number = 1, pageSize: number = 10): Promise<{
+  getRTITemplates: async (page: number = 1, pageSize: number = 10, httpClient?: any): Promise<{
     data: Template[],
     pagination: {
       page: number,
@@ -31,7 +31,20 @@ export const templateService = {
       totalPages: number
     }
   }> => {
-    // TODO: Wire up backend API for fetching templates: 
+    if (httpClient) {
+      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+      const response = await httpClient.request({
+        url: `${baseUrl}/api/v1/rti_templates`,
+        params: {
+          page,
+          pageSize
+        },
+        method: 'GET',
+      });
+      return response.data;
+    }
+
+    // Fallback to mock data if no httpClient is provided
     await new Promise(resolve => setTimeout(resolve, 600));
 
     //mocking the response
@@ -52,12 +65,45 @@ export const templateService = {
   },
 
   /**
+   * Fetch a single RTI template by ID
+   */
+  getRTITemplateById: async (id: string, httpClient?: any): Promise<Template> => {
+    if (httpClient) {
+      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+      const response = await httpClient.request({
+        url: `${baseUrl}/api/v1/rti_templates/${id}`,
+        method: 'GET',
+      });
+      return response.data;
+    }
+
+    // Fallback to mock data
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const { mockTemplates } = await import('../data/mockData');
+    const template = mockTemplates.find(t => t.id === id);
+    if (!template) {
+      throw new Error(`Template with ID ${id} not found`);
+    }
+    return template;
+  },
+
+  /**
    * Create a new RTI template
    */
-  createRTITemplate: async (template: Omit<Template, 'id'>): Promise<Template> => {
+  createRTITemplate: async (template: Omit<Template, 'id'>, httpClient?: any): Promise<Template> => {
     const formData = toFormData(template.title, template.description, template.content);
 
     console.log(`[POST] Calling createRTITemplate for: ${template.title}`);
+
+    if (httpClient) {
+      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+      const response = await httpClient.request({
+        url: `${baseUrl}/api/v1/rti_templates`,
+        method: 'POST',
+        data: formData,
+      });
+      return response.data;
+    }
 
     // TODO: Wire up backend API for creating templates: 
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -78,10 +124,20 @@ export const templateService = {
   /**
    * Update an existing RTI template
    */
-  updateRTITemplate: async (id: string, updates: Partial<Template>): Promise<Template> => {
+  updateRTITemplate: async (id: string, updates: Partial<Template>, httpClient?: any): Promise<Template> => {
     const formData = toFormData(updates.title, updates.description, updates.content);
 
     console.log(`[PUT] Calling updateRTITemplate for ID: ${id}`);
+
+    if (httpClient) {
+      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+      const response = await httpClient.request({
+        url: `${baseUrl}/api/v1/rti_templates/${id}`,
+        method: 'PUT',
+        data: formData,
+      });
+      return response.data;
+    }
 
     // TODO: Wire up backend API for updating templates: 
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -101,11 +157,46 @@ export const templateService = {
   },
 
   /**
+   * Fetch raw markdown content for a template directly from GitHub
+   */
+  getTemplateContent: async (filePath: string): Promise<string> => {
+    try {
+      // Fetch directly from the raw GitHub URL
+      const rawUrl = `https://raw.githubusercontent.com/sehansi-9/test-rti/main/${filePath}`;
+      const response = await fetch(rawUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch template content: ${response.statusText}`);
+      }
+      return await response.text();
+    } catch (e) {
+      console.error(e);
+      return '';
+    }
+  },
+
+  /**
    * Delete an RTI template
    */
-  deleteRTITemplate: async (id: string): Promise<void> => {
+  deleteRTITemplate: async (id: string, httpClient?: any): Promise<void> => {
 
     console.log(`[DELETE] Calling deleteRTITemplate for ID: ${id}`);
+
+    if (httpClient) {
+      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+      try {
+        await httpClient.request({
+          url: `${baseUrl}/api/v1/rti_templates/${id}`,
+          method: 'DELETE',
+        });
+      } catch (e: any) {
+        // Asgardeo's http client may throw a JSON parse error for 204 No Content
+        if (e.response && e.response.status >= 400) {
+          throw e;
+        }
+        console.warn("Ignored error during delete (likely 204 No Content parse error):", e);
+      }
+      return;
+    }
 
     // TODO: Wire up backend API for deleting templates: 
     await new Promise(resolve => setTimeout(resolve, 400));
