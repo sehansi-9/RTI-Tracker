@@ -237,11 +237,8 @@ async def test_create_rti_request_history_db_failure_rolls_back_files(rti_reques
     with pytest.raises(InternalServerException):
         await service.create_rti_request_history(rti_request_id=rti_request.id, request_data=request)
     
-    # Get the actual path that was passed to create_file
-    uploaded_path = fs.create_file.call_args.kwargs['file_path']
-    
-    # Verify file service delete was called with that same path
-    fs.delete_file.assert_called_once_with(file_path=uploaded_path)
+    # Verify file service delete was called with the relative_path returned by create_file
+    fs.delete_file.assert_called_once_with(file_path="to-be-deleted.pdf")
 
 
 @pytest.mark.asyncio
@@ -486,12 +483,8 @@ async def test_update_rti_request_history_db_failure_rolls_back_new_files(rti_re
     with pytest.raises(InternalServerException):
         await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
     
-    # Capture the actual path that was used for the new upload
-    new_upload_path = fs.create_file.call_args.kwargs['file_path']
-    
-    # Verify file service delete was called ONLY for the new file
-    # The existing file should NOT be deleted because the commit failed
-    fs.delete_file.assert_called_once_with(file_path=new_upload_path)
+    # Verify file service delete was called ONLY for the new file (using its relative_path)
+    fs.delete_file.assert_called_once_with(file_path="orphaned.pdf")
     
     # Double check that delete_file was NOT called for the existing_file
     for call in fs.delete_file.call_args_list:

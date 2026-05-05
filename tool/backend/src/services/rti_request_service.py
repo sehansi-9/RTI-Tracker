@@ -62,6 +62,7 @@ class RTIRequestService:
 
             relative_path = response.get("relative_path", "")
             if not relative_path:
+                await self.file_service.delete_file(file_path=file_path)
                 raise InternalServerException("[RTI SERVICE] Invalid path response from file service")
 
             uploaded_file_path = relative_path
@@ -263,6 +264,13 @@ class RTIRequestService:
                         content=new_file_content,
                         message=f"Update file (new extension) for RTI Request {target_id}"
                     )
+
+                    relative_path = response.get("relative_path", "")
+                    if not relative_path:
+                        await self.file_service.delete_file(file_path=new_file_path)
+                        raise InternalServerException("[RTI SERVICE] Invalid path response from file service")
+
+                    new_file_path = relative_path
                     status_history.files = [new_file_path]
                     self.session.add(status_history)
 

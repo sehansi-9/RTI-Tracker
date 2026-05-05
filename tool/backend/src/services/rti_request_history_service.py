@@ -24,6 +24,7 @@ from src.core.exceptions import (
     ConflictException
 )
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ class RTIRequestHistoryService:
             statement_records = (
                 select(RTIStatusHistory)
                 .where(RTIStatusHistory.rti_request_id == target_id)
+                .options(selectinload(RTIStatusHistory.rti_status))
                 .order_by(RTIStatusHistory.created_at.desc())
                 .offset(offset)
                 .limit(page_size)
@@ -139,14 +141,16 @@ class RTIRequestHistoryService:
                     response = await self.file_service.create_file(
                         file_path=file_path,
                         content=content,
-                        message=f"Upload file for RTI Request History {unique_history_id}"
+                        message=f"Upload file for RTI Request History {unique_history_id}_{i}{ext.lower()}"
                     )
-                    
-                    uploaded_file_paths.append(file_path)
                     
                     relative_path = response.get("relative_path", "")
                     if not relative_path:
+                        # If service returned success but no path, attempt immediate cleanup of the target path
+                        await self.file_service.delete_file(file_path=file_path)
                         raise InternalServerException("[RTI HISTORY SERVICE] Invalid path response from file service")
+                    
+                    uploaded_file_paths.append(relative_path)
                     
 
             # 5. Insert RTIStatusHistory
@@ -248,7 +252,7 @@ class RTIRequestHistoryService:
                 base_idx = len(history.files) if history.files else 0
                 for i, file in enumerate(request_data.files_to_add):
                     _, ext = os.path.splitext(file.filename)
-                    file_path = f"rti-requests/{history.rti_request_id}/histories/{target_id}/{target_id}_u{base_idx + i}{ext.lower()}"
+                    file_path = f"rti-requests/{history.rti_request_id}/histories/{target_id}/{target_id}_{base_idx + i}{ext.lower()}"
                     
                     content = await file.read()
                     response = await self.file_service.create_file(
@@ -257,12 +261,13 @@ class RTIRequestHistoryService:
                         message=f"Upload additional file for RTI Request History {target_id}"
                     )
                     
-                    uploaded_file_paths.append(file_path)
-
                     relative_path = response.get("relative_path", "")
                     if not relative_path:
+                        # Attempt immediate cleanup of the target path if response is invalid
+                        await self.file_service.delete_file(file_path=file_path)
                         raise InternalServerException("[RTI HISTORY SERVICE] Invalid path response from file service")
                     
+                    uploaded_file_paths.append(relative_path)
                     current_files.append(relative_path)
 
             history.files = current_files

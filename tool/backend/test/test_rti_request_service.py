@@ -410,7 +410,9 @@ async def test_update_rti_request_post_commit_file_deletion_failure(rti_request_
     sender = rti_request_db.exec(select(Sender)).first()
     receiver = rti_request_db.exec(select(Receiver)).first()
     
-    fs = make_file_service()
+    initial_path = "rti-requests/old-file.pdf"
+    updated_path = "rti-requests/new-file.txt"
+    fs = make_file_service(relative_path=initial_path)
     fs.read_file = AsyncMock(return_value={"content": b"old", "sha": "sha"})
     # Fail ONLY the delete_file call
     fs.delete_file = AsyncMock(side_effect=Exception("GitHub Down"))
@@ -420,6 +422,9 @@ async def test_update_rti_request_post_commit_file_deletion_failure(rti_request_
     # Create with .pdf
     request = make_rti_request_request(sender_id=sender.id, receiver_id=receiver.id, filename="old.pdf")
     created = await service.create_rti_request(request_data=request)
+    
+    # Change the mock to return a .txt path for the next create_file call (during update)
+    fs.create_file = AsyncMock(return_value={"relative_path": updated_path})
     
     # To trigger delete_file, we'd need another allowed extension.
     # We modify it temporarily and ENSURE it is restored to prevent isolation leaks.
@@ -433,15 +438,14 @@ async def test_update_rti_request_post_commit_file_deletion_failure(rti_request_
         result = await service.update_rti_request(request_data=update_request)
         
         assert result.id == created.id
-        fs.delete_file.assert_called_once()
+        fs.delete_file.assert_called_once_with(file_path=initial_path)
         
         # CRITICAL: Verify that the DB was actually updated despite the cleanup failure
         # Get the history record for the CREATED status
         status_history = rti_request_db.exec(
             select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == created.id)
         ).first()
-        expected_path = f"rti-requests/{created.id}/{created.id}.txt"
-        assert status_history.files == [expected_path]
+        assert status_history.files == [updated_path]
     finally:
         service.ALLOWED_FILE_TYPES = original_types
 
