@@ -583,5 +583,188 @@ async def test_delete_rti_request_history_db_failure(rti_request_db, make_file_s
     # Verify GitHub deletion was NOT called
     fs.delete_file.assert_not_called()
 
+@pytest.mark.asyncio
+async def test_update_rti_request_history_status_not_found(rti_request_db, make_file_service):
+    """NotFoundException raised when updating history with a non-existent status ID."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryUpdateRequest(id=history.id, statusId=uuid.uuid4())
+    
+    with pytest.raises(NotFoundException) as exc:
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "RTI Status" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_invalid_file_extension(rti_request_db, make_file_service, make_upload_file):
+    """BadRequestException raised when adding files with unsupported extensions during update."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        filesToAdd=[make_upload_file(filename="malicious.exe")]
+    )
+    
+    with pytest.raises(BadRequestException) as exc:
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "valid extension" in str(exc.value)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_invalid_relative_path_response(rti_request_db, make_file_service, make_upload_file):
+    """InternalServerException raised and cleanup triggered if file service returns empty relative_path."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service()
+    # Mock create_file to return success but with empty relative_path
+    fs.create_file = AsyncMock(return_value={"relative_path": ""})
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        filesToAdd=[make_upload_file(filename="test.pdf")]
+    )
+    
+    with pytest.raises(InternalServerException) as exc:
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    assert "Invalid path response" in str(exc.value)
+    
+    # Verify cleanup was attempted for the calculated path
+    cleanup_path = fs.create_file.call_args.kwargs['file_path']
+    fs.delete_file.assert_called_once_with(file_path=cleanup_path)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_files_to_delete_missing_path(rti_request_db, make_file_service):
+    """Update still succeeds if a non-existent path is provided in filesToDelete."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    existing_file = "rti-requests/exists.pdf"
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[existing_file]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service()
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    # "non-existent.pdf" is not in history.files
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        filesToDelete=["non-existent.pdf", existing_file]
+    )
+    
+    response = await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    # existing_file should be deleted, non-existent should be ignored
+    assert response.files == []
+    fs.delete_file.assert_called_once_with(file_path=existing_file)
+
+@pytest.mark.asyncio
+async def test_update_rti_request_history_file_upload_exception(rti_request_db, make_file_service, make_upload_file):
+    """InternalServerException raised and DB rolled back if file service throws during update."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc)
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service()
+    fs.create_file = AsyncMock(side_effect=Exception("Upload Failed"))
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    request = RTIRequestHistoryUpdateRequest(
+        id=history.id,
+        description="Should fail",
+        filesToAdd=[make_upload_file(filename="test.pdf")]
+    )
+    
+    with pytest.raises(InternalServerException):
+        await service.update_rti_request_history(rti_request_id=rti_request.id, request_data=request)
+    
+    # Verify DB was not updated (description should still be original or None)
+    rti_request_db.rollback() # Ensure session is clean
+    db_history = rti_request_db.get(RTIStatusHistory, history.id)
+    assert db_history.description is None
+
+@pytest.mark.asyncio
+async def test_delete_rti_request_history_github_delete_failure_post_commit(rti_request_db, make_file_service):
+    """API succeeds even if GitHub file deletion fails after the DB commit during record deletion."""
+    rti_request = create_test_rti_request(rti_request_db)
+    status = rti_request_db.exec(select(RTIStatus)).first()
+    
+    file_path = "rti-requests/orphan.pdf"
+    history = RTIStatusHistory(
+        id=uuid.uuid4(),
+        rti_request_id=rti_request.id,
+        status_id=status.id,
+        direction=RTIDirection.sent,
+        entry_time=datetime.now(timezone.utc),
+        files=[file_path]
+    )
+    rti_request_db.add(history)
+    rti_request_db.commit()
+    
+    fs = make_file_service()
+    # Mock delete_file to fail
+    fs.delete_file = AsyncMock(side_effect=Exception("GitHub Down"))
+    service = RTIRequestHistoryService(session=rti_request_db, file_service=fs)
+    
+    # Should not raise exception because DB delete happened first
+    await service.delete_rti_request_history(rti_request_id=rti_request.id, history_id=history.id)
+    
+    # DB record should be gone
+    assert rti_request_db.get(RTIStatusHistory, history.id) is None
+    fs.delete_file.assert_called_once_with(file_path=file_path)
+
 
 

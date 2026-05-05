@@ -231,10 +231,12 @@ class RTIRequestHistoryService:
             current_files = list(history.files) if history.files else []
 
             # 1. Handle file deletions (from database list)
+            actual_deleted_files = []
             if request_data.files_to_delete:
                 for file_path in request_data.files_to_delete:
                     if file_path in current_files:
                         current_files.remove(file_path)
+                        actual_deleted_files.append(file_path)
                     else:
                         logger.warning(f"[RTI HISTORY SERVICE] File {file_path} not found in history record {target_id}")
 
@@ -276,8 +278,8 @@ class RTIRequestHistoryService:
             committed = True
 
             # 3. Handle physical file deletions from GitHub after successful commit
-            if request_data.files_to_delete:
-                for file_path in request_data.files_to_delete:
+            if actual_deleted_files:
+                for file_path in actual_deleted_files:
                     try:
                         await self.file_service.delete_file(file_path=file_path)
                     except Exception as ex:
