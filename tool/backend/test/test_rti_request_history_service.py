@@ -65,7 +65,7 @@ async def test_get_rti_request_histories_success(rti_request_db, make_file_servi
     service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
     
     # 3. Fetch with page_size=2
-    response = service.get_rti_request_histories(rti_request_id=rti_request.id, page=1, page_size=2)
+    response = service.get_rti_request_histories_by_id(rti_request_id=rti_request.id, page=1, page_size=2)
     
     # 4. Assertions
     assert isinstance(response, RTIRequestHistoryListResponse)
@@ -82,7 +82,7 @@ async def test_get_rti_request_histories_not_found(rti_request_db, make_file_ser
     service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
     
     with pytest.raises(NotFoundException) as exc:
-        service.get_rti_request_histories(rti_request_id=uuid.uuid4())
+        service.get_rti_request_histories_by_id(rti_request_id=uuid.uuid4())
     assert "not found" in str(exc.value)
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_get_rti_request_histories_invalid_uuid(rti_request_db, make_file_
     service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
     
     with pytest.raises(BadRequestException) as exc:
-        service.get_rti_request_histories(rti_request_id="not-a-uuid")
+        service.get_rti_request_histories_by_id(rti_request_id="not-a-uuid")
     assert "Invalid UUID format" in str(exc.value)
 
 @pytest.mark.asyncio
@@ -101,7 +101,7 @@ async def test_get_rti_request_histories_empty(rti_request_db, make_file_service
     rti_request = create_test_rti_request(rti_request_db)
     
     service = RTIRequestHistoryService(session=rti_request_db, file_service=make_file_service())
-    response = service.get_rti_request_histories(rti_request_id=rti_request.id)
+    response = service.get_rti_request_histories_by_id(rti_request_id=rti_request.id)
     
     assert response.data == []
     assert response.pagination.total_items == 0
@@ -119,7 +119,7 @@ async def test_get_rti_request_histories_internal_error(rti_request_db, monkeypa
     monkeypatch.setattr(rti_request_db, "exec", fake_exec)
     
     with pytest.raises(InternalServerException) as exc:
-        service.get_rti_request_histories(rti_request_id=rti_request.id)
+        service.get_rti_request_histories_by_id(rti_request_id=rti_request.id)
     assert "Failed to fetch RTI request histories" in str(exc.value)
 
 

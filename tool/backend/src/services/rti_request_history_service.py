@@ -39,7 +39,7 @@ class RTIRequestHistoryService:
         self.file_service = file_service
 
     # API
-    def get_rti_request_histories(
+    def get_rti_request_histories_by_id(
         self,
         *,
         rti_request_id: UUID,
