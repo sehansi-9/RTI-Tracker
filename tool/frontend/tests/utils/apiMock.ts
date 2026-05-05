@@ -83,7 +83,6 @@ export async function setupApiMocks(page: Page) {
   // --- Catch-all for other methods (DELETE, PUT) to always succeed in tests ---
   await page.route('**', async (route) => {
     const url = route.request().url();
-    // Only intercept requests that look like they are going to an API (you can refine this)
     if (url.includes('/rti-') || url.includes('/receivers') || url.includes('/institutions')) {
       const method = route.request().method();
       if (['DELETE', 'PUT', 'PATCH'].includes(method)) {

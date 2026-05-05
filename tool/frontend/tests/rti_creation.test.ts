@@ -57,8 +57,6 @@ test.describe('RTI Request Creation', () => {
     await expect(page.getByText(rtiTitle)).toBeVisible();
 
     // Click Dispatch & Download
-    // Note: PDF download might trigger a browser dialog or just download. 
-    // We mainly care about the navigation back to list and the record creation.
     await page.getByRole('button', { name: 'Dispatch & Download' }).click();
 
     // Verify redirect to list
@@ -101,7 +99,6 @@ test.describe('RTI Request Creation', () => {
     await page.getByText('Use a Template').click();
 
     // Check if any templates exist. If not create one.
-    // We wait for the grid to appear first.
     const selectionGrid = page.getByTestId('template-selection-grid');
     await expect(selectionGrid).toBeVisible();
 
