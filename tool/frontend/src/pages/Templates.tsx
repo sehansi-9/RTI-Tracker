@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { templateService } from '../services/templateService';
 import { Template } from '../types/rti';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -8,42 +7,14 @@ import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
 import { SmartEditor, SmartEditorRef } from '../components/SmartEditor';
 import { RTI_VARIABLES } from '../utils/variableUtils';
-
-// import { useAsgardeo } from '@asgardeo/react'; import this to use the http client provided by IdP
-
+import { useTemplates } from '../hooks/useTemplates'
 
 export function Templates() {
-
-  // const { http, isSignedIn } = useAsgardeo(); grab these states. signin check and the http client for authenticated http requests
-
-  // example request porcedure
-  // useEffect(() => {
-  //   if (!isSignedIn) {
-  //     return;
-  //   }
-
-  //   (async () => {
-  //     try {
-  //       since we are using the http client provided by the IdP , the token get injected when the request is made.
-  //       const response = await http.request({
-  //         url: '<base-url>/scim2/Me',
-  //         headers: {
-  //           Accept: 'application/json',
-  //           'Content-Type': 'application/scim+json',
-  //         },
-  //         method: 'GET',
-  //       });
-
-  //       setUserData(response.data);
-  //     } catch (error) {
-  //       console.error('Error fetching user data:', error);
-  //     }
-  //   })();
-  // }, [http, isSignedIn]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const { data, isLoading, createTemplate, updateTemplate, deleteTemplate: removeTemplate, fetchTemplateContent } = useTemplates(currentPage, 10);
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string, title: string } | null>(null);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
@@ -65,7 +36,7 @@ export function Templates() {
         const serverTemplates = response.data.filter(st => !newTemplates.some(nt => nt.title === st.title));
         return [...newTemplates, ...serverTemplates];
       });
-      
+
       setPagination(response.pagination);
 
       if (response.data.length > 0 && !selectedTemplate) {
@@ -144,10 +115,10 @@ export function Templates() {
     const isNew = selectedTemplate.id.startsWith('new-');
 
     try {
-      let savedTemplate;
+      let savedTemplate: Template;
 
       if (isNew) {
-        savedTemplate = await templateService.createRTITemplate({
+        savedTemplate = await createTemplate({
           title: editedName,
           description: selectedTemplate.description || '',
           content: markdown,
@@ -155,16 +126,18 @@ export function Templates() {
           createdAt: new Date(),
           updatedAt: new Date()
         });
+        savedTemplate.content = markdown;
+        setTemplates(prev => [savedTemplate, ...prev.filter(t => t.id !== selectedTemplate.id)]);
         toast.success('New template created!');
       } else {
-        savedTemplate = await templateService.updateRTITemplate(selectedTemplate.id, {
-          title: editedName,
-          content: markdown
+        savedTemplate = await updateTemplate({
+          id: selectedTemplate.id,
+          updates: { title: editedName, content: markdown }
         });
+        savedTemplate.content = markdown;
+        setTemplates(prev => prev.map(t => t.id === selectedTemplate.id ? savedTemplate : t));
         toast.success('Template updated!');
       }
-
-      await fetchTemplates(1);
 
       setSelectedTemplate(savedTemplate);
       setIsEditingName(false);
@@ -172,6 +145,7 @@ export function Templates() {
       toast.error('Failed to save template');
     }
   };
+
 
   const deleteTemplate = (id: string, title: string) => {
     setTemplateToDelete({ id, title });
@@ -188,7 +162,7 @@ export function Templates() {
       if (!isNew) {
         await templateService.deleteRTITemplate(idToDelete);
       }
-      
+
       toast.success('Template deleted');
 
       // Immediately remove from local state
@@ -210,16 +184,13 @@ export function Templates() {
       const newData = await fetchTemplates(pageToFetch);
 
       if (isDeletingSelected) {
-        if (newData && newData.length > 0) {
-          setSelectedTemplate(newData[0]);
-        } else {
-          setSelectedTemplate(null);
-        }
+        setSelectedTemplate(null);
       }
     } catch (error) {
       toast.error('Failed to delete template');
     }
   };
+
 
   const onDragStart = (e: React.DragEvent, variable: any) => {
     e.dataTransfer.setData('application/json', JSON.stringify(variable));
@@ -286,10 +257,11 @@ export function Templates() {
               <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
-                onPageChange={(nextPage) => fetchTemplates(nextPage)}
+                onPageChange={(nextPage) => setCurrentPage(nextPage)}
                 variant="simple"
                 loading={isLoading}
               />
+
             </div>
           </div>
         )}
