@@ -221,9 +221,9 @@ export function Templates() {
             <div className="p-3 border-b border-gray-200 bg-gray-50/50 font-semibold text-xs uppercase tracking-wider text-gray-500">
               Saved Templates
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" data-testid="templates-list">
               {templates.map((template: Template) => (
-                <div key={template.id} className="group relative" data-testid={`template-row-${template.id}`}>
+                <div key={template.id} className="group relative" data-testid="template-row">
                   <button
                     data-testid="template-list-item"
                     onClick={() => handleSelect(template)}
@@ -238,6 +238,7 @@ export function Templates() {
                     {template.title}
                   </button>
                   <button
+                    data-testid="delete-template-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteTemplate(template.id, template.title);

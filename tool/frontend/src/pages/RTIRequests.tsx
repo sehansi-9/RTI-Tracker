@@ -281,7 +281,7 @@ export function RTIRequests() {
                       <ChevronLeft className="w-4 h-4 mr-1" /> Back
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="template-selection-grid">
                     {templates.map((template) => (
                       <div key={template.id} className="group bg-white border border-gray-200 rounded-2xl p-6 flex flex-col hover:border-blue-900 hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => handleTemplateSelect(template.id, template.file, template.title)}>
                         <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-900 group-hover:text-white transition-colors">

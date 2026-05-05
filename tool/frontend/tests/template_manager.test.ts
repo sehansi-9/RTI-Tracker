@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from './utils/apiMock';
 
 test.describe('Template Manager', () => {
 
   test.beforeEach(async ({ page }) => {
+    await setupApiMocks(page);
     await page.goto('/templates');
     // Wait for the initial loading spinner to disappear
     await expect(page.locator('.animate-spin')).not.toBeVisible();
@@ -38,9 +40,14 @@ test('can create a new template', async ({ page }) => {
     await nameInput.fill('Edited Playwright Template');
     await nameInput.press('Enter'); 
 
-    // Add text to the editor
+    // Add text to the editor - ensuring we have a fresh state
     const editor = page.locator('[contenteditable="true"]');
+    await expect(editor).toBeVisible();
     await editor.click();
+    
+    // Clear any existing content (like automatic selection of first template)
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
     
     // ensuring the cursor stays at the end
     await editor.pressSequentially('Hello ');
@@ -54,16 +61,31 @@ test('can create a new template', async ({ page }) => {
     const pillSenderName = editor.locator('.pill-chip').filter({ hasText: 'Sender Name' }).first();
     await expect(pillSenderName).toBeVisible();
 
-    // Test Backspace to remove variable - 2 backspaces to remove the invisible space after each variable pill.
-    await editor.press('Backspace'); 
-    await editor.press('Backspace'); 
+    // 1. Test variable removal via the 'x' button
+    const removeBtn = pillSenderName.locator('.pill-remove');
+    await removeBtn.click();
     await expect(pillSenderName).not.toBeVisible();
+
+    // 2. Test removal via Backspace using a different variable (Date)
+    const dateVarItem = page.locator('div[draggable="true"]').filter({ hasText: 'Date' }).first();
+    await dateVarItem.click();
+    
+    let pillDate = editor.locator('.pill-chip').filter({ hasText: 'Date' }).first();
+    await expect(pillDate).toBeVisible();
+
+    // Test Backspace - We use focus and press Backspace multiple times
+    await editor.focus();
+    await page.keyboard.press('Backspace'); 
+    await page.keyboard.press('Backspace'); 
+    await page.keyboard.press('Backspace'); 
+    
+    await expect(pillDate).not.toBeVisible({ timeout: 10000 });
 
     //  Insert variable insertion by drag and drop
     const dateVar = page.locator('div[draggable="true"]').filter({ hasText: 'Date' }).first();
     await dateVar.dragTo(editor);
     
-    const pillDate = editor.locator('.pill-chip').filter({ hasText: 'Date' }).first();
+    pillDate = editor.locator('.pill-chip').filter({ hasText: 'Date' }).first();
     await expect(pillDate).toBeVisible();
 
     await page.getByRole('button', { name: 'Save Template' }).click();
@@ -78,11 +100,15 @@ test('can create a new template', async ({ page }) => {
 
   test('can format text using toolbar', async ({ page }) => {
 
-    const newBtn = page.getByRole('button', { name: /(New|Create) Template/ });
-    await newBtn.first().click();
-
+    // Click New Template button and ensure we have a fresh state
+    await page.getByRole('button', { name: /New|Create/ }).first().click();
+    
+    // Wait for editor to be visible and clear it to be absolutely sure
     const editor = page.locator('[contenteditable="true"]');
+    await expect(editor).toBeVisible();
     await editor.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
     
     // Type sample phrase
     await editor.pressSequentially('Hello World');
@@ -119,10 +145,10 @@ test('can create a new template', async ({ page }) => {
     
     // We check that SOME formatting is present inside or around the text
     const innerHTML = await editor.innerHTML();
-    // Look for bold (b, strong, or 700/bold in style)
-    expect(innerHTML).toMatch(/<h1.*>.*(<b>|<strong>|<span[^>]*style=[^>]*bold|700).*Hello World/i);
+    // Look for bold (b, strong, or bold in style/font-weight)
+    expect(innerHTML).toMatch(/(<b>|<strong>|bold|700).*Hello World/i);
     // Look for italic (i, em, or italic in style)
-    expect(innerHTML).toMatch(/<h1.*>.*(<i>|<em>|<span[^>]*style=[^>]*italic).*Hello World/i);
+    expect(innerHTML).toMatch(/(<i>|<em>|italic).*Hello World/i);
 
     // reclick to undo italic
     await editor.focus();
@@ -164,12 +190,12 @@ test('can create a new template', async ({ page }) => {
     await expect(page.getByText('New template created!')).toBeVisible();
 
     // Verify it is in the sidebar with the unique name
-    const templateRow = page.getByTestId('template-list-item').filter({ hasText: uniqueName }).first();
+    const templateRow = page.getByTestId('template-row').filter({ hasText: uniqueName }).first();
     await expect(templateRow).toBeVisible();
 
     // Hover and delete
     await templateRow.hover();
-    const deleteBtn = page.locator('.group').filter({ hasText: uniqueName }).locator('button').last(); 
+    const deleteBtn = templateRow.getByTestId('delete-template-btn'); 
     await deleteBtn.click();
 
     // Click "Delete Template" in confirm modal

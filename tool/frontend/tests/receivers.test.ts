@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from './utils/apiMock';
 
 test.describe('Receivers Management', () => {
 
   test.beforeEach(async ({ page }) => {
+    await setupApiMocks(page);
     // Start at the receivers page
     await page.goto('/receivers');
   });
 
   test('can switch between tabs', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Receivers' })).toBeVisible();
-    
+
     // Switch to Institutions
     await page.getByRole('button', { name: 'Institutions' }).click();
     await expect(page.getByText('Institution List')).toBeVisible();
@@ -56,9 +58,9 @@ test.describe('Receivers Management', () => {
     await expect(page.getByPlaceholder('Name')).toHaveValue('Gringotts Bank');
     await page.getByRole('button', { name: 'Create' }).click();
 
-    // SHOULD REDIRECT BACK TO RECEIVER MODAL
+    // redirecting back to receiver modal
     await expect(page.getByRole('heading', { name: 'New Receiver' })).toBeVisible();
-    
+
     // Verify Gringotts is selected (SearchableSelect shows the name in the input value)
     await expect(page.getByPlaceholder('Select institution')).toHaveValue('Gringotts Bank');
   });
@@ -67,10 +69,10 @@ test.describe('Receivers Management', () => {
     // Using the mock data 'Ministry of Finance'
     const searchInput = page.getByPlaceholder('Search receivers...');
     await searchInput.fill('Finance');
-    
+
     // Should show results
     await expect(page.getByText('pio.finance@gov.in')).toBeVisible();
-    
+
     // Search something that doesn't exist
     await searchInput.fill('NonExistentDepartment');
     await expect(page.getByText('No data found.')).toBeVisible({ timeout: 10000 });

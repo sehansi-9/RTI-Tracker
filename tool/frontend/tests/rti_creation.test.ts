@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from './utils/apiMock';
 
 test.describe('RTI Request Creation', () => {
 
   test.beforeEach(async ({ page }) => {
+    await setupApiMocks(page);
     await page.goto('/rti-requests');
   });
 
@@ -98,14 +100,21 @@ test.describe('RTI Request Creation', () => {
     // Step 1: Use a Template
     await page.getByText('Use a Template').click();
 
-    // Check if any templates exist. If not create one
-    const templateOptions = page.locator('button').filter({ hasText: /Request|Template/ });
+    // Check if any templates exist. If not create one.
+    // We wait for the grid to appear first.
+    const selectionGrid = page.getByTestId('template-selection-grid');
+    await expect(selectionGrid).toBeVisible();
+
+    // Small wait to ensure mock data has populated the grid
+    await page.waitForTimeout(500);
+
+    const templateOptions = selectionGrid.locator('button').filter({ hasText: 'Use Template' });
     const count = await templateOptions.count();
 
     if (count === 0) {
       templateCreatedInTest = true;
-      // Close modal and go to templates page
-      await page.keyboard.press('Escape');
+      // Close modal by clicking back or escape
+      await page.getByRole('button', { name: 'Back' }).click();
       await page.goto('/templates');
       await page.getByRole('button', { name: /New|Create/ }).first().click();
 
@@ -158,11 +167,21 @@ test.describe('RTI Request Creation', () => {
     // CLEANUP: If we created a template, delete it now
     if (templateCreatedInTest) {
       await page.goto('/templates');
-      const row = page.getByTestId('template-list-item').filter({ hasText: cleanupName }).first();
+
+      // Wait for templates to load
+      const templatesList = page.getByTestId('templates-list');
+      await expect(templatesList).toBeVisible();
+
+      const row = page.getByTestId('template-row').filter({ hasText: cleanupName }).first();
+      await expect(row).toBeVisible({ timeout: 10000 });
+
       await row.hover();
-      // Locate the delete button in that row
-      const deleteBtn = page.locator('.group').filter({ hasText: cleanupName }).locator('button').last();
+
+      // Locate the delete button in that row using the new test ID
+      const deleteBtn = row.getByTestId('delete-template-btn');
       await deleteBtn.click();
+
+      await expect(page.getByRole('heading', { name: 'Delete Template?' })).toBeVisible();
       await page.getByRole('button', { name: 'Delete Template' }).click();
       await expect(page.getByText('Template deleted')).toBeVisible();
     }
