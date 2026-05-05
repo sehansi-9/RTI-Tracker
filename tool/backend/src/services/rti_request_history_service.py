@@ -10,7 +10,7 @@ from src.models import (
 from src.services.github_file_service import GithubFileService
 from src.models.table_schemas.table_schemas import (
     RTIRequest, 
-    RTIStatusHistories, 
+    RTIStatusHistory, 
     RTIStatus
 )
 from src.models.response_models.rti_request_histories import (
@@ -61,9 +61,9 @@ class RTIRequestHistoryService:
 
             # Fetch paginated history records ordered by created_at descending
             statement_records = (
-                select(RTIStatusHistories)
-                .where(RTIStatusHistories.rti_request_id == target_id)
-                .order_by(RTIStatusHistories.created_at.desc())
+                select(RTIStatusHistory)
+                .where(RTIStatusHistory.rti_request_id == target_id)
+                .order_by(RTIStatusHistory.created_at.desc())
                 .offset(offset)
                 .limit(page_size)
             )
@@ -72,8 +72,8 @@ class RTIRequestHistoryService:
             # Fetch total count
             statement_count = (
                 select(func.count())
-                .select_from(RTIStatusHistories)
-                .where(RTIStatusHistories.rti_request_id == target_id)
+                .select_from(RTIStatusHistory)
+                .where(RTIStatusHistory.rti_request_id == target_id)
             )
             total_items = self.session.exec(statement_count).one()
 
@@ -149,8 +149,8 @@ class RTIRequestHistoryService:
                         raise InternalServerException("[RTI HISTORY SERVICE] Invalid path response from file service")
                     
 
-            # 5. Insert RTIStatusHistories
-            status_history = RTIStatusHistories(
+            # 5. Insert RTIStatusHistory
+            status_history = RTIStatusHistory(
                 id=unique_history_id,
                 rti_request_id=rti_request_id,
                 status_id=request_data.status_id,
@@ -198,7 +198,7 @@ class RTIRequestHistoryService:
         uploaded_file_paths: list[str] = []
         try:
             target_id = request_data.id
-            history = self.session.get(RTIStatusHistories, target_id)
+            history = self.session.get(RTIStatusHistory, target_id)
             if not history:
                 raise NotFoundException(f"RTI Request History with id {target_id} not found.")
 
@@ -312,7 +312,7 @@ class RTIRequestHistoryService:
         committed = False
         files_to_delete: list[str] = []
         try:
-            history = self.session.get(RTIStatusHistories, history_id)
+            history = self.session.get(RTIStatusHistory, history_id)
             if not history:
                 raise NotFoundException(f"RTI Request History with id {history_id} not found.")
 

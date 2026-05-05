@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 
 from src.services.rti_request_history_service import RTIRequestHistoryService
 from src.models.table_schemas.table_schemas import (
-    RTIRequest, RTIStatusHistories, RTIDirection, RTIStatus, Sender, Receiver
+    RTIRequest, RTIStatusHistory, RTIDirection, RTIStatus, Sender, Receiver
 )
 from src.models.response_models.rti_request_histories import (
     RTIRequestHistoryResponse, RTIRequestHistoryListResponse
@@ -49,7 +49,7 @@ async def test_get_rti_request_histories_success(rti_request_db, make_file_servi
     # 2. Add history records (3 records)
     now = datetime.now(timezone.utc)
     histories = [
-        RTIStatusHistories(
+        RTIStatusHistory(
             id=uuid.uuid4(),
             rti_request_id=rti_request.id,
             status_id=status.id,
@@ -344,7 +344,7 @@ async def test_update_rti_request_history_success(rti_request_db, make_file_serv
 
     
     # Create initial history
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request.id,
         status_id=status1.id,
@@ -387,7 +387,7 @@ async def test_update_rti_request_history_add_delete_files(rti_request_db, make_
     status = rti_request_db.exec(select(RTIStatus)).first()
     
     existing_file = "rti-requests/old-file.pdf"
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request.id,
         status_id=status.id,
@@ -424,7 +424,7 @@ async def test_update_rti_request_history_wrong_rti_request(rti_request_db, make
     rti_request2 = create_test_rti_request(rti_request_db)
     status = rti_request_db.exec(select(RTIStatus)).first()
     
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request1.id,
         status_id=status.id,
@@ -460,7 +460,7 @@ async def test_update_rti_request_history_db_failure_rolls_back_new_files(rti_re
     status = rti_request_db.exec(select(RTIStatus)).first()
     
     existing_file = "rti-requests/stay-safe.pdf"
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request.id,
         status_id=status.id,
@@ -505,7 +505,7 @@ async def test_delete_rti_request_history_success(rti_request_db, make_file_serv
     status = rti_request_db.exec(select(RTIStatus)).first()
     
     file_path = "rti-requests/to-be-nuked.pdf"
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request.id,
         status_id=status.id,
@@ -522,7 +522,7 @@ async def test_delete_rti_request_history_success(rti_request_db, make_file_serv
     await service.delete_rti_request_history(rti_request_id=rti_request.id, history_id=history.id)
     
     # Verify DB record is gone
-    deleted_history = rti_request_db.get(RTIStatusHistories, history.id)
+    deleted_history = rti_request_db.get(RTIStatusHistory, history.id)
     assert deleted_history is None
     
     # Verify GitHub deletion was called
@@ -535,7 +535,7 @@ async def test_delete_rti_request_history_wrong_rti(rti_request_db, make_file_se
     rti_request2 = create_test_rti_request(rti_request_db)
     status = rti_request_db.exec(select(RTIStatus)).first()
     
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request1.id,
         status_id=status.id,
@@ -567,7 +567,7 @@ async def test_delete_rti_request_history_db_failure(rti_request_db, make_file_s
     status = rti_request_db.exec(select(RTIStatus)).first()
     
     file_path = "rti-requests/safe.pdf"
-    history = RTIStatusHistories(
+    history = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=rti_request.id,
         status_id=status.id,

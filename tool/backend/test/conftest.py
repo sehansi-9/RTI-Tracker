@@ -4,7 +4,7 @@ import uuid
 from aiohttp import ClientError
 from datetime import datetime, timezone, timedelta
 from sqlmodel import SQLModel, Session, create_engine
-from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest, ReceiverUpdateRequest, RTIRequest, RTIStatus, RTIStatusHistories, RTIStatusName
+from src.models import RTITemplate, Institution, Position, Receiver, ReceiverRequest, ReceiverUpdateRequest, RTIRequest, RTIStatus, RTIStatusHistory, RTIStatusName
 from src.models.request_models import RTITemplateRequest, PositionRequest
 from src.services.github_file_service import GithubFileService
 from fastapi import UploadFile

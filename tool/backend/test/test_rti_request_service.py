@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from src.services.rti_request_service import RTIRequestService
 from src.models.table_schemas.table_schemas import (
-    RTIRequest, RTIStatus, RTIStatusHistories, RTIDirection, 
+    RTIRequest, RTIStatus, RTIStatusHistory, RTIDirection, 
     Sender, Receiver, RTITemplate
 )
 from src.models.response_models.rti_requests import RTIRequestResponse
@@ -45,8 +45,8 @@ async def test_create_rti_request_success(rti_request_db, make_file_service, mak
     db_request = rti_request_db.exec(select(RTIRequest).where(RTIRequest.id == result.id)).first()
     assert db_request is not None
     
-    # Check if RTIStatusHistories record exists
-    db_history = rti_request_db.exec(select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == result.id)).first()
+    # Check if RTIStatusHistory record exists
+    db_history = rti_request_db.exec(select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == result.id)).first()
     assert db_history is not None
     assert db_history.direction == RTIDirection.sent
     assert db_history.files == ["rti-requests/dir/file.pdf"]
@@ -438,7 +438,7 @@ async def test_update_rti_request_post_commit_file_deletion_failure(rti_request_
         # CRITICAL: Verify that the DB was actually updated despite the cleanup failure
         # Get the history record for the CREATED status
         status_history = rti_request_db.exec(
-            select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == created.id)
+            select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == created.id)
         ).first()
         expected_path = f"rti-requests/{created.id}/{created.id}.txt"
         assert status_history.files == [expected_path]
@@ -456,7 +456,7 @@ async def test_update_rti_request_missing_initial_history(rti_request_db, make_f
     created = await service.create_rti_request(request_data=request)
     
     # Delete the history record
-    histories = rti_request_db.exec(select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == created.id)).all()
+    histories = rti_request_db.exec(select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == created.id)).all()
     for h in histories:
         rti_request_db.delete(h)
     rti_request_db.commit()
@@ -495,7 +495,7 @@ async def test_update_rti_request_blocked_by_history(rti_request_db, make_file_s
     status = rti_request_db.exec(select(RTIStatus)).first()
         
     # Add second history
-    history2 = RTIStatusHistories(
+    history2 = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=created.id,
         status_id=status.id,
@@ -604,7 +604,7 @@ async def test_delete_rti_request_success(rti_request_db, make_file_service, mak
     assert rti_request_db.get(RTIRequest, created.id) is None
     
     # Verify History deletion
-    histories = rti_request_db.exec(select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == created.id)).all()
+    histories = rti_request_db.exec(select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == created.id)).all()
     assert len(histories) == 0
     
     # Verify GitHub deletion
@@ -653,7 +653,7 @@ async def test_delete_rti_request_blocked_by_history(rti_request_db, make_file_s
     created = await service.create_rti_request(request_data=request)
     
     # Add a second history record
-    history2 = RTIStatusHistories(
+    history2 = RTIStatusHistory(
         id=uuid.uuid4(),
         rti_request_id=created.id,
         status_id=rti_request_db.exec(select(RTIStatus)).first().id, # just use any status
