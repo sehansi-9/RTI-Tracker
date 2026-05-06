@@ -5,8 +5,7 @@ import { toFormData } from '../utils/formUtils';
 const SLEEP_MS = 500;
 const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
 
-const TEMPLATE_BASE_URL = 'https://storage.rti.api/templates/';
-const REQUEST_FILES_BASE_URL = 'https://storage.rti.api/requests/';
+const TEMPLATE_BASE_URL = import.meta.env.VITE_TEMPLATE_BASE_URL || 'https://storage.rti.api/templates/';
 
 export const rtiRequestsService = {
   async list(page: number, pageSize: number, search?: string) {
@@ -90,7 +89,7 @@ export const rtiRequestsService = {
     const receiver = db.receivers.find(r => r.id === payload.receiverId);
     const template = db.templates.find(t => t.id === payload.rtiTemplateId);
 
-    const fileLink = payload.file ? `${REQUEST_FILES_BASE_URL}${payload.file.name}` : null;
+    const fileLink = payload.file ? payload.file.name : null;
 
     const newRequest: RTIRequest = {
       id: 'rti-' + crypto.randomUUID(),
@@ -154,7 +153,7 @@ export const rtiRequestsService = {
       description: payload.description || '',
       entryTime: entryTime,
       exitTime: null,
-      files: payload.files ? payload.files.map(f => `https://storage.rti.api/requests/${f.name}`) : [],
+      files: payload.files ? payload.files.map(f => `requests/${f.name}`) : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -198,13 +197,13 @@ export const rtiRequestsService = {
     if (index === -1) throw new Error('Entry not found');
 
     const entry = db.statusHistories[index];
-    const uploadedFiles = payload.filesToAdd ? payload.filesToAdd.map(f => `https://storage.rti.api/requests/${f.name}`) : [];
-    
+    const uploadedFileNames = payload.filesToAdd ? payload.filesToAdd.map(f => `requests/${f.name}`) : [];
+
     let updatedFiles = [...entry.files];
     if (payload.filesToDelete && payload.filesToDelete.length > 0) {
-      updatedFiles = updatedFiles.filter(f => !payload.filesToDelete!.includes(f));
+      updatedFiles = updatedFiles.filter(f => !payload.filesToDelete!.includes(f as string));
     }
-    updatedFiles = [...updatedFiles, ...uploadedFiles];
+    updatedFiles = [...updatedFiles, ...uploadedFileNames];
 
     const updatedStatus = payload.statusId ? db.statuses.find(s => s.id === payload.statusId) : entry.status;
 

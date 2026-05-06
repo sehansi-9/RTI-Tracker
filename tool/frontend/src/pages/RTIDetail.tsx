@@ -81,12 +81,12 @@ export function RTIDetail() {
     if (!id) return;
 
     // Validation: Require at least one document except for COMPLETED
-    const totalFiles = eventFormData.existingFiles.length + eventFormData.newFiles.length;
+    // const totalFiles = eventFormData.existingFiles.length + eventFormData.newFiles.length;
     const selectedStatusToSave = statuses.find(s => s.id === eventFormData.statusId);
-    if (selectedStatusToSave?.name !== 'COMPLETED' && totalFiles === 0) {
-      toast.error('At least one document is required for this status');
-      return;
-    }
+    // if (selectedStatusToSave?.name !== 'COMPLETED' && totalFiles === 0) {
+    //   toast.error('At least one document is required for this status');
+    //   return;
+    // }
 
     try {
       if (isEditing && selectedEntry) {
@@ -368,9 +368,12 @@ export function RTIDetail() {
                                   >
                                     <button
                                       onClick={() => {
+                                        const fileName = file.split('/').pop() || 'document.pdf';
+                                        const fileUrl = file.startsWith('http') ? file : `${import.meta.env.VITE_TEMPLATE_BASE_URL.replace('/templates/', '')}/${file}`;
+
                                         const link = document.createElement('a');
-                                        link.href = file;
-                                        link.download = file.split('/').pop() || 'document.pdf';
+                                        link.href = fileUrl;
+                                        link.download = fileName;
                                         link.click();
                                       }}
                                       className="flex items-center gap-1.5 hover:text-blue-900"
