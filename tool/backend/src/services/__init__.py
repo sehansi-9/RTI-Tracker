@@ -6,6 +6,7 @@ from .sender_service import SenderService
 from .receiver_service import ReceiverService
 from .rti_request_service import RTIRequestService
 from .rti_status_service import RTIStatusService
+from .rti_request_history_service import RTIRequestHistoryService
 
 __all__ = [
     "RTITemplateService",
@@ -15,7 +16,8 @@ __all__ = [
     "SenderService",
     "ReceiverService",
     "RTIRequestService",
-    "RTIStatusService"
+    "RTIStatusService",
+    "RTIRequestHistoryService"
 ]
 
 

@@ -159,7 +159,7 @@ class RTIRequest(SQLModel, table=True):
     sender: Sender = Relationship(back_populates="rti_requests")
     receiver: Receiver = Relationship(back_populates="rti_requests")
     rti_template: Optional[RTITemplate] = Relationship(back_populates="rti_requests")
-    rti_status_histories: List["RTIStatusHistories"] = Relationship(back_populates="rti_request")
+    rti_status_histories: List["RTIStatusHistory"] = Relationship(back_populates="rti_request")
 
 class RTIStatus(SQLModel, table=True):
     __tablename__ = "rti_statuses"
@@ -178,10 +178,10 @@ class RTIStatus(SQLModel, table=True):
     )
 
     # relationships
-    rti_status_histories: List["RTIStatusHistories"] = Relationship(back_populates="rti_status")
+    rti_status_histories: List["RTIStatusHistory"] = Relationship(back_populates="rti_status")
 
 
-class RTIStatusHistories(SQLModel, table=True):
+class RTIStatusHistory(SQLModel, table=True):
     __tablename__ = "rti_status_histories"
 
     # table fields

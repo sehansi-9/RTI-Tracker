@@ -5,6 +5,7 @@ from .receiver import ReceiverRequest, ReceiverUpdateRequest
 from .positions import PositionRequest
 from .rti_requests import RTIRequestRequest, RTIRequestUpdateRequest
 from .rti_statuses import RTIStatusRequest
+from .rti_request_histories import RTIRequestHistoryRequest, RTIRequestHistoryUpdateRequest
 
 __all__ = [
     "SenderRequest",
@@ -15,6 +16,8 @@ __all__ = [
     "PositionRequest",
     "RTIRequestRequest",
     "RTIRequestUpdateRequest",
-    "RTIStatusRequest"
+    "RTIStatusRequest",
+    "RTIRequestHistoryRequest",
+    "RTIRequestHistoryUpdateRequest"
 ]
 

@@ -1,5 +1,9 @@
 import asyncio
 import logging
+from src.utils.http_client import http_client
+from src.routers import rti_template_router, institution_router, position_router, sender_router, receiver_router, rti_request_router, rti_status_router, rti_request_history_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -124,6 +128,7 @@ app.include_router(sender_router)
 app.include_router(receiver_router)
 app.include_router(rti_request_router)
 app.include_router(rti_status_router)
+app.include_router(rti_request_history_router)
 
 app.add_exception_handler(BaseAPIException, api_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

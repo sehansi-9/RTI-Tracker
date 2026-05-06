@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select, Session, func
 from src.models import PaginationModel
 from src.services.github_file_service import GithubFileService
-from src.models.table_schemas.table_schemas import RTIRequest, RTIStatus, RTIStatusHistories, RTIDirection, Receiver, Sender, RTITemplate, RTIStatusName
+from src.models.table_schemas.table_schemas import RTIRequest, RTIStatus, RTIStatusHistory, RTIDirection, Receiver, Sender, RTITemplate, RTIStatusName
 from src.models.response_models.rti_requests import RTIRequestResponse, RTIRequestListResponse
 from src.models.request_models.rti_requests import RTIRequestRequest, RTIRequestUpdateRequest
 from src.core.exceptions import InternalServerException, BadRequestException, NotFoundException, ConflictException
@@ -62,6 +62,7 @@ class RTIRequestService:
 
             relative_path = response.get("relative_path", "")
             if not relative_path:
+                await self.file_service.delete_file(file_path=file_path)
                 raise InternalServerException("[RTI SERVICE] Invalid path response from file service")
 
             uploaded_file_path = relative_path
@@ -77,14 +78,14 @@ class RTIRequestService:
             )
             self.session.add(rti_request)
 
-            # 4. Insert RTIStatusHistories
+            # 4. Insert RTIStatusHistory
             statement = select(RTIStatus).where(RTIStatus.name == RTIStatusName.CREATED)
             created_status = self.session.exec(statement).first()
 
             if not created_status:
                 raise InternalServerException("Status 'CREATED' not found in database.")
 
-            status_history = RTIStatusHistories(
+            status_history = RTIStatusHistory(
                 id=uuid4(),
                 rti_request_id=unique_id,
                 status_id=created_status.id,
@@ -200,7 +201,7 @@ class RTIRequestService:
                 raise NotFoundException(f"RTI Request with id {target_id} not found.")
 
             # Check if request has progressed
-            statement_histories = select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == target_id)
+            statement_histories = select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == target_id)
             histories = self.session.exec(statement_histories).all()
             if len(histories) > 1:
                 raise ConflictException("Cannot update RTI Request because it has associated status history records beyond creation.")
@@ -231,9 +232,9 @@ class RTIRequestService:
                 if not created_status:
                     raise InternalServerException("Status 'CREATED' not found in database.")
 
-                history_statement = select(RTIStatusHistories).where(
-                    RTIStatusHistories.rti_request_id == target_id,
-                    RTIStatusHistories.status_id == created_status.id
+                history_statement = select(RTIStatusHistory).where(
+                    RTIStatusHistory.rti_request_id == target_id,
+                    RTIStatusHistory.status_id == created_status.id
                 )
                 status_history = self.session.exec(history_statement).first()
 
@@ -263,6 +264,13 @@ class RTIRequestService:
                         content=new_file_content,
                         message=f"Update file (new extension) for RTI Request {target_id}"
                     )
+
+                    relative_path = response.get("relative_path", "")
+                    if not relative_path:
+                        await self.file_service.delete_file(file_path=new_file_path)
+                        raise InternalServerException("[RTI SERVICE] Invalid path response from file service")
+
+                    new_file_path = relative_path
                     status_history.files = [new_file_path]
                     self.session.add(status_history)
 
@@ -334,7 +342,7 @@ class RTIRequestService:
                 raise NotFoundException(f"RTI Request with id {target_id} not found.")
 
             # 1. Fetch all histories and their files
-            statement = select(RTIStatusHistories).where(RTIStatusHistories.rti_request_id == target_id)
+            statement = select(RTIStatusHistory).where(RTIStatusHistory.rti_request_id == target_id)
             histories = self.session.exec(statement).all()
             
             # If there are more than 1 history record, it means the request has progressed
