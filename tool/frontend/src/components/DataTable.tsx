@@ -61,7 +61,7 @@ export function DataTable<T>({
     content = <div className="p-10 text-center text-sm text-gray-500">{emptyMessage}</div>;
   } else {
     content = (
-      <div className="overflow-x-auto overflow-y-auto max-h-[370px] relative">
+      <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-300px)] min-h-[200px] relative">
         {loading && (
           <div className="absolute inset-0 bg-white/40 z-20 flex items-center justify-center backdrop-blur-[1px]">
             <div className="flex flex-col items-center gap-2">
