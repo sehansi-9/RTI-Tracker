@@ -41,8 +41,7 @@ export const institutionService = {
   async removeInstitution(id: string, httpClient?: any) {
     await httpClient.request({
       url: `${BASE_URL}/api/v1/institutions/${id}`,
-      method: 'DELETE',
-      validateStatus: () => true,
+      method: 'DELETE'
     });
   }
 };

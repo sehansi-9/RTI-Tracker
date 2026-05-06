@@ -3,7 +3,7 @@ import { Receiver } from '../types/db';
 const BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
 
 export const receiversService = {
-  listReceivers: async (page: number = 1, pageSize: number = 10, _search?: string, httpClient?: any): Promise<{
+  listReceivers: async (page: number = 1, pageSize: number = 10, search?: string, httpClient?: any): Promise<{
     data: Receiver[],
     pagination: {
       page: number,
@@ -14,7 +14,7 @@ export const receiversService = {
   }> => {
     const response = await httpClient.request({
       url: `${BASE_URL}/api/v1/receivers`,
-      params: { page, pageSize },
+      params: { page, pageSize, query: search },
       method: 'GET',
     });
     return response.data;
@@ -41,8 +41,7 @@ export const receiversService = {
   async removeReceiver(id: string, httpClient?: any) {
     await httpClient.request({
       url: `${BASE_URL}/api/v1/receivers/${id}`,
-      method: 'DELETE',
-      validateStatus: () => true,
+      method: 'DELETE'
     });
   }
 };

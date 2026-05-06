@@ -41,8 +41,7 @@ export const positionService = {
   async removePosition(id: string, httpClient?: any) {
     await httpClient.request({
       url: `${BASE_URL}/api/v1/positions/${id}`,
-      method: 'DELETE',
-      validateStatus: () => true,
+      method: 'DELETE'
     });
   }
 };

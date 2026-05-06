@@ -23,19 +23,28 @@ export function useEntityData<T>(
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => serviceFns.create!(data, http),
+    mutationFn: (data: any) => {
+      if (!serviceFns.create) throw new Error(`Create operation not supported for ${queryKey}`);
+      return serviceFns.create(data, http);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryKey] }),
     retry: 0,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => serviceFns.update!(id, data, http),
+    mutationFn: ({ id, data }: { id: string, data: any }) => {
+      if (!serviceFns.update) throw new Error(`Update operation not supported for ${queryKey}`);
+      return serviceFns.update(id, data, http);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryKey] }),
     retry: 0,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => serviceFns.delete!(id, http),
+    mutationFn: (id: string) => {
+      if (!serviceFns.delete) throw new Error(`Delete operation not supported for ${queryKey}`);
+      return serviceFns.delete(id, http);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryKey] }),
     retry: 0,
   });
