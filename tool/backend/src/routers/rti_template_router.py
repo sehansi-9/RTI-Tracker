@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Form, UploadFile, File, Path, status
+from fastapi import APIRouter, Depends, Query, Form, UploadFile, File, Path, status, Response
 from typing import Annotated, Optional
 from src.services import RTITemplateService, GithubFileService
 from src.repositories.db import SessionDep
@@ -65,7 +65,7 @@ async def delete_rti_template_endpoint(
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
     await service.delete_rti_template(template_id=id)
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 
