@@ -1,10 +1,11 @@
 import logging
-from src.models import Receiver, PaginationModel, ReceiverRequest, ReceiverUpdateRequest
+from src.models import Receiver, PaginationModel, ReceiverRequest, ReceiverUpdateRequest, Institution, Position
 from src.models.response_models import ReceiverListResponse, ReceiverResponse
 from src.core import InternalServerException, ConflictException, NotFoundException
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from uuid import uuid4, UUID
 
 logger = logging.getLogger(__name__)
@@ -54,23 +55,41 @@ class ReceiverService:
         self,
         *,
         page: int = 1,
-        page_size: int = 10
+        page_size: int = 10,
+        query: str | None = None
     ) -> ReceiverListResponse:
         try:
             offset = (page - 1) * page_size
+            query = query.strip() if query else None
+            search_pattern = f"%{query}%" if query else None
+            
+            # Base filter condition
+            filters = []
+            if search_pattern:
+                filters.append(
+                    or_(
+                        Receiver.institution.has(Institution.name.ilike(search_pattern)),
+                        Receiver.position.has(Position.name.ilike(search_pattern)),
+                    )
+                )
 
-            # fetch the records from the table
+            # Fetch the records from the table
             statement_records = (
                 select(Receiver)
                 .options(selectinload(Receiver.position), selectinload(Receiver.institution))
+                .where(*filters)
                 .order_by(Receiver.created_at.desc())
                 .offset(offset)
                 .limit(page_size)
             )
             results = self.session.exec(statement_records).all()
-            
-            # fetch the total record count
-            statement_count = select(func.count()).select_from(Receiver)
+
+            # Fetch the total record count (with same filters applied)
+            statement_count = (
+                select(func.count())
+                .select_from(Receiver)
+                .where(*filters)
+            )
             total_items = self.session.exec(statement_count).one()
 
             # pagination response

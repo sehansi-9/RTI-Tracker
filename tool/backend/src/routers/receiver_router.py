@@ -24,10 +24,11 @@ def create_receiver_endpoint(
 def get_receiver_endpoint(
     page: int = Query(1, ge=1, description="page number"),
     page_size: int = Query(10, ge=1, le=100, alias="pageSize", description="page size"),
+    query: str = Query("", description="search query"),
     service: ReceiverService = Depends(get_receiver_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
-    return service.get_receivers(page=page, page_size=page_size)
+    return service.get_receivers(page=page, page_size=page_size, query=query)
 
 @router.get("/receivers/{receiver_id}", response_model=ReceiverResponse)
 def get_receiver_by_id_endpoint(

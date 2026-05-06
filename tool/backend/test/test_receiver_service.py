@@ -16,14 +16,14 @@ def test_get_receivers_default(receiver_db):
     assert isinstance(response, ReceiverListResponse)
     assert response.pagination.page == 1
     assert response.pagination.page_size == 10
-    assert response.pagination.total_items == 3
+    assert response.pagination.total_items == 6
     assert response.pagination.total_pages == 1
-    assert len(response.data) == 3
+    assert len(response.data) == 6
     # verify sorting order (descending by created_at)
     # Receiver 3 (now) should be first, Receiver 1 (now - 2h) should be last
     assert response.data[0].email == "receiver3@example.com"
-    assert response.data[1].email == "receiver2@example.com"
-    assert response.data[2].email == "receiver1@example.com"
+    assert response.data[1].email == "r3@example.com"
+    assert response.data[2].email == "receiver2@example.com"
 
     # Verify eager loading relationships
     assert response.data[0].position is not None
@@ -36,10 +36,10 @@ def test_get_receivers_custom_pagination(receiver_db):
     
     assert response.pagination.page == 2
     assert response.pagination.page_size == 2
-    assert response.pagination.total_items == 3
-    assert response.pagination.total_pages == 2
-    assert len(response.data) == 1  # Only 1 record left for page 2
-    assert response.data[0].email == "receiver1@example.com"
+    assert response.pagination.total_items == 6
+    assert response.pagination.total_pages == 3
+    assert len(response.data) == 2  # Only 2 record left for page 2
+    assert response.data[0].email == "receiver2@example.com"
 
 def test_get_receivers_empty_db():
     """Test behavior when no receivers exist in the database."""
@@ -276,3 +276,130 @@ def test_update_receiver_invalid_institution_id(receiver_db, make_receiver_updat
     with pytest.raises(ConflictException) as excinfo:
         service.update_receiver(receiver_id=existing.id, receiver_request=request)
     assert "constraint violation" in str(excinfo.value).lower()
+
+
+def test_get_receivers_filter_by_institution_name(receiver_db):
+    """Filtering by institution name returns only matching receivers."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="Ministry of Health")
+
+    assert isinstance(response, ReceiverListResponse)
+    assert response.pagination.total_items == 1
+    assert response.data[0].email == "r1@example.com"
+    assert response.data[0].institution.name == "Ministry of Health"
+
+
+def test_get_receivers_filter_by_institution_name_partial(receiver_db):
+    """Partial institution name match returns all matching receivers."""
+    service = ReceiverService(session=receiver_db)
+    # Both "Ministry of Health" and "Ministry of Finance" contain "Ministry"
+    response = service.get_receivers(query="Ministry")
+
+    assert response.pagination.total_items == 2
+    emails = {r.email for r in response.data}
+    assert emails == {"r1@example.com", "r2@example.com"}
+
+
+def test_get_receivers_filter_by_position_name(receiver_db):
+    """Filtering by position name returns only matching receivers."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="Director General")
+
+    assert response.pagination.total_items == 1
+    assert response.data[0].email == "r2@example.com"
+    assert response.data[0].position.name == "Director General"
+
+
+def test_get_receivers_filter_by_position_name_partial(receiver_db):
+    """Partial position name match returns correct receivers."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="Admin")
+
+    assert response.pagination.total_items == 1
+    assert response.data[0].email == "r3@example.com"
+
+
+def test_get_receivers_filter_case_insensitive_institution(receiver_db):
+    """Search is case-insensitive for institution name."""
+    service = ReceiverService(session=receiver_db)
+
+    response_lower = service.get_receivers(query="ministry of health")
+    response_upper = service.get_receivers(query="MINISTRY OF HEALTH")
+    response_mixed = service.get_receivers(query="Ministry Of Health")
+
+    assert response_lower.pagination.total_items == 1
+    assert response_upper.pagination.total_items == 1
+    assert response_mixed.pagination.total_items == 1
+
+
+def test_get_receivers_filter_case_insensitive_position(receiver_db):
+    """Search is case-insensitive for position name."""
+    service = ReceiverService(session=receiver_db)
+
+    response_lower = service.get_receivers(query="legal officer")
+    response_upper = service.get_receivers(query="LEGAL OFFICER")
+
+    assert response_lower.pagination.total_items == 1
+    assert response_upper.pagination.total_items == 1
+    assert response_lower.data[0].email == "r1@example.com"
+
+
+def test_get_receivers_filter_no_match(receiver_db):
+    """Query with no matches returns empty data and correct pagination."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="Nonexistent Institution XYZ")
+
+    assert isinstance(response, ReceiverListResponse)
+    assert response.pagination.total_items == 0
+    assert response.pagination.total_pages == 0
+    assert response.data == []
+
+
+def test_get_receivers_filter_none_query_returns_all(receiver_db):
+    """Passing query=None falls back to normal behaviour and returns all records."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query=None)
+
+    assert response.pagination.total_items == 6
+    assert len(response.data) == 6
+
+
+def test_get_receivers_filter_empty_string_returns_all(receiver_db):
+    """Passing an empty string query falls back to normal behaviour."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="")
+
+    # empty string is falsy, so no filter should be applied
+    assert response.pagination.total_items == 6
+
+
+def test_get_receivers_filter_with_pagination(receiver_db):
+    """Filter result count feeds correctly into pagination when paged."""
+    service = ReceiverService(session=receiver_db)
+    # Both Ministry records match; request page_size=1 to force two pages
+    response_p1 = service.get_receivers(query="Ministry", page=1, page_size=1)
+    response_p2 = service.get_receivers(query="Ministry", page=2, page_size=1)
+
+    assert response_p1.pagination.total_items == 2
+    assert response_p1.pagination.total_pages == 2
+    assert len(response_p1.data) == 1
+
+    assert response_p2.pagination.total_items == 2
+    assert response_p2.pagination.total_pages == 2
+    assert len(response_p2.data) == 1
+
+    # Combined, they cover both matching receivers
+    emails = {response_p1.data[0].email, response_p2.data[0].email}
+    assert emails == {"r1@example.com", "r2@example.com"}
+
+
+def test_get_receivers_filter_eager_loads_relationships(receiver_db):
+    """Filtered results still eager-load position and institution relationships."""
+    service = ReceiverService(session=receiver_db)
+    response = service.get_receivers(query="Sri Lanka Police")
+
+    assert response.pagination.total_items == 1
+    result = response.data[0]
+    assert result.position is not None
+    assert result.institution is not None
+    assert result.institution.name == "Sri Lanka Police"
