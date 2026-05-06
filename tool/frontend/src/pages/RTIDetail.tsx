@@ -22,7 +22,7 @@ export function RTIDetail() {
   const [selectedEntry, setSelectedEntry] = useState<RTIStatusHistory | null>(null);
   const [eventFormData, setEventFormData] = useState({
     statusId: '',
-    direction: 'outgoing' as 'outgoing' | 'incoming',
+    direction: 'sent' as 'sent' | 'received',
     description: '',
     existingFiles: [] as string[],
     newFiles: [] as File[]
@@ -59,7 +59,7 @@ export function RTIDetail() {
   const handleAddEvent = () => {
     setIsEditing(false);
     setSelectedEntry(null);
-    setEventFormData({ statusId: '', direction: 'outgoing', description: '', existingFiles: [], newFiles: [] });
+    setEventFormData({ statusId: '', direction: 'sent', description: '', existingFiles: [], newFiles: [] });
     setIsEventModalOpen(true);
   };
 
@@ -150,7 +150,7 @@ export function RTIDetail() {
       await rtiRequestsService.addHistory({
         rtiRequestId: id,
         statusId: completedStatus.id,
-        direction: 'incoming',
+        direction: 'received',
         description: 'Request marked as completed.',
         files: []
       });
@@ -350,7 +350,7 @@ export function RTIDetail() {
                           </div>
 
                           <div className="flex items-center gap-3 py-1">
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-widest border ${h.direction === 'outgoing' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-widest border ${h.direction === 'sent' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
                               {h.direction}
                             </span>
                           </div>
@@ -426,7 +426,7 @@ export function RTIDetail() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Direction</label>
                 <div className="flex gap-4">
-                  {['outgoing', 'incoming'].map((dir) => {
+                  {['sent', 'received'].map((dir) => {
                     return (
                       <label key={dir} className="flex-1 cursor-pointer">
                         <input

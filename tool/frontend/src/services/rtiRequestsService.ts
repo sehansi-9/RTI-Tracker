@@ -111,7 +111,7 @@ export const rtiRequestsService = {
       id: crypto.randomUUID(),
       rtiRequestId: newRequest.id,
       status: db.statuses.find(s => s.name.toUpperCase() === 'CREATED') || { id: 'stat-1', name: 'CREATED', createdAt: new Date(), updatedAt: new Date() },
-      direction: 'outgoing',
+      direction: 'sent',
       description: 'Initial RTI Request created.',
       entryTime: new Date(),
       exitTime: null,
@@ -137,7 +137,7 @@ export const rtiRequestsService = {
   async addHistory(payload: {
     rtiRequestId: string;
     statusId: string;
-    direction: 'incoming' | 'outgoing';
+    direction: 'received' | 'sent';
     description?: string | null;
     files?: File[];
   }) {
@@ -188,7 +188,7 @@ export const rtiRequestsService = {
 
   async updateHistory(id: string, payload: {
     statusId?: string;
-    direction?: 'incoming' | 'outgoing';
+    direction?: 'received' | 'sent';
     description?: string | null;
     filesToAdd?: File[];
     filesToDelete?: string[];

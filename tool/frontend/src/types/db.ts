@@ -80,7 +80,7 @@ export interface RTIStatusHistory {
   id: string;
   rtiRequestId: string;
   status: RTIStatus;
-  direction: 'incoming' | 'outgoing';
+  direction: 'received' | 'sent';
   description: string | null;
   entryTime: Date;
   exitTime: Date | null;
