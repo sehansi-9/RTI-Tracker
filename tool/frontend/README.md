@@ -33,6 +33,7 @@ This project uses **Playwright** for End-to-End (E2E) testing.
 2. **Run all tests:**
    ```bash
    npx playwright test
+   npx playwright test --project=chromium
    ```
 
 3. **View the latest HTML report:**
