@@ -32,7 +32,7 @@ class RTITemplateService:
             offset = (page - 1) * page_size
 
             # fetch the records from the table
-            statement_records = select(RTITemplate).offset(offset).limit(page_size)
+            statement_records = select(RTITemplate).order_by(RTITemplate.created_at.desc()).offset(offset).limit(page_size)
             results = self.session.exec(statement_records).all()
             
             # fetch the total record count

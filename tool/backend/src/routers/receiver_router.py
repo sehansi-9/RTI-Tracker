@@ -3,7 +3,7 @@ from src.repositories.db import SessionDep
 from src.models import User, UserRole, ReceiverRequest, ReceiverUpdateRequest
 from src.dependencies import RoleChecker
 from src.models.response_models import ReceiverListResponse, ReceiverResponse
-from fastapi import APIRouter, Query, Depends, Path, status
+from fastapi import APIRouter, Query, Depends, Path, status, Response
 from uuid import UUID
 from typing_extensions import Annotated
 
@@ -54,5 +54,5 @@ def delete_receiver_endpoint(
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
     service.delete_receiver(receiver_id=receiver_id)
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 

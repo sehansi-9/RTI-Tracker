@@ -7,7 +7,7 @@ from src.repositories.db import SessionDep
 from src.models.response_models import InstitutionListResponse, InstitutionResponse
 from src.dependencies import RoleChecker
 from src.models import UserRole, User
-from fastapi import Depends, Query, status
+from fastapi import Depends, Query, status, Response, APIRouter
 from fastapi.routing import APIRouter
 
 router = APIRouter(prefix="/api/v1", tags=["Institutions"])
@@ -60,5 +60,5 @@ def delete_institution_endpoint(
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
     service.delete_institution(institution_id=institution_id)
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
