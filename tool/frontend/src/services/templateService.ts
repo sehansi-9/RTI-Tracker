@@ -1,6 +1,7 @@
 import { Template } from '../types/rti';
-import { mockTemplates } from '../data/mockData';
 
+const API_BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000'
+const FILE_STORAGE_BASE_URL = import.meta.env.VITE_FILE_STORAGE_BASE_URL;
 /**
  * Helper to convert template fields and content into Multipart FormData.
  */
@@ -18,6 +19,7 @@ const toFormData = (title?: string, description?: string, content?: string): For
   return formData;
 };
 
+
 export const templateService = {
   /**
    * Fetches templates with pagination
@@ -32,9 +34,8 @@ export const templateService = {
     }
   }> => {
     if (httpClient) {
-      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
       const response = await httpClient.request({
-        url: `${baseUrl}/api/v1/rti_templates`,
+        url: `${API_BASE_URL}/api/v1/rti_templates`,
         params: {
           page,
           pageSize
@@ -44,24 +45,7 @@ export const templateService = {
       return response.data;
     }
 
-    // Fallback to mock data if no httpClient is provided
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    //mocking the response
-    const start = (page - 1) * pageSize;
-    const end = page * pageSize;
-    const totalItems = mockTemplates.length;
-    const totalPages = Math.ceil(totalItems / pageSize);
-
-    return {
-      data: mockTemplates.slice(start, end),
-      pagination: {
-        page,
-        pageSize,
-        totalItems,
-        totalPages
-      }
-    };
+    throw new Error('Asgardeo HTTP client is required for getRTITemplates');
   },
 
   /**
@@ -69,22 +53,14 @@ export const templateService = {
    */
   getRTITemplateById: async (id: string, httpClient?: any): Promise<Template> => {
     if (httpClient) {
-      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
       const response = await httpClient.request({
-        url: `${baseUrl}/api/v1/rti_templates/${id}`,
+        url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
         method: 'GET',
       });
       return response.data;
     }
 
-    // Fallback to mock data
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const { mockTemplates } = await import('../data/mockData');
-    const template = mockTemplates.find(t => t.id === id);
-    if (!template) {
-      throw new Error(`Template with ID ${id} not found`);
-    }
-    return template;
+    throw new Error('Asgardeo HTTP client is required for getRTITemplateById');
   },
 
   /**
@@ -96,29 +72,15 @@ export const templateService = {
     console.log(`[POST] Calling createRTITemplate for: ${template.title}`);
 
     if (httpClient) {
-      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
       const response = await httpClient.request({
-        url: `${baseUrl}/api/v1/rti_templates`,
+        url: `${API_BASE_URL}/api/v1/rti_templates`,
         method: 'POST',
         data: formData,
       });
       return response.data;
     }
 
-    // TODO: Wire up backend API for creating templates: 
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    //mocking the response
-    const now = new Date();
-    const savedTemplate = {
-      ...template,
-      id: now.toISOString(),
-      createdAt: now,
-      updatedAt: now
-    } as Template;
-    mockTemplates.unshift(savedTemplate);
-
-    return savedTemplate;
+    throw new Error('Asgardeo HTTP client is required for createRTITemplate');
   },
 
   /**
@@ -130,30 +92,15 @@ export const templateService = {
     console.log(`[PUT] Calling updateRTITemplate for ID: ${id}`);
 
     if (httpClient) {
-      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
       const response = await httpClient.request({
-        url: `${baseUrl}/api/v1/rti_templates/${id}`,
+        url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
         method: 'PUT',
         data: formData,
       });
       return response.data;
     }
 
-    // TODO: Wire up backend API for updating templates: 
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    //mocking the response
-    const index = mockTemplates.findIndex(t => t.id === id);
-    if (index !== -1) {
-      mockTemplates[index] = {
-        ...mockTemplates[index],
-        ...updates,
-        updatedAt: new Date()
-      };
-      return mockTemplates[index];
-    }
-    throw new Error(`Template with ID ${id} not found`);
-
+    throw new Error('Asgardeo HTTP client is required for updateRTITemplate');
   },
 
   /**
@@ -162,7 +109,7 @@ export const templateService = {
   getTemplateContent: async (filePath: string): Promise<string> => {
     try {
       // Fetch directly from the raw GitHub URL
-      const rawUrl = `https://raw.githubusercontent.com/sehansi-9/test-rti/main/${filePath}`;
+      const rawUrl = `${FILE_STORAGE_BASE_URL}${filePath}`;
       const response = await fetch(rawUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch template content: ${response.statusText}`);
@@ -182,29 +129,13 @@ export const templateService = {
     console.log(`[DELETE] Calling deleteRTITemplate for ID: ${id}`);
 
     if (httpClient) {
-      const baseUrl = import.meta.env.RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
-      try {
-        await httpClient.request({
-          url: `${baseUrl}/api/v1/rti_templates/${id}`,
-          method: 'DELETE',
-        });
-      } catch (e: any) {
-        // Asgardeo's http client may throw a JSON parse error for 204 No Content
-        if (e.response && e.response.status >= 400) {
-          throw e;
-        }
-        console.warn("Ignored error during delete (likely 204 No Content parse error):", e);
-      }
+      await httpClient.request({
+        url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
+        method: 'DELETE',
+      });
       return;
     }
 
-    // TODO: Wire up backend API for deleting templates: 
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    // For mocking purposes
-    const index = mockTemplates.findIndex(t => t.id === id);
-    if (index !== -1) {
-      mockTemplates.splice(index, 1);
-    }
+    throw new Error('Asgardeo HTTP client is required for deleteRTITemplate');
   }
 };

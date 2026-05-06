@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Template } from '../types/rti';
 import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -9,44 +9,45 @@ import { useTemplates } from '../hooks/useTemplates'
 
 export function Templates() {
   const [currentPage, setCurrentPage] = useState(1);
-  const { data, isLoading, createTemplate, updateTemplate, deleteTemplate: removeTemplate, fetchTemplateContent } = useTemplates(currentPage, 10);
+  const { data, isLoading, isFetching, createTemplate, updateTemplate, deleteTemplate: removeTemplate, fetchTemplateContent } = useTemplates(currentPage, 10);
 
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [newTemplates, setNewTemplates] = useState<Template[]>([]);
+  const [contentCache, setContentCache] = useState<Record<string, string>>({});
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string, title: string } | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
   const editorRef = useRef<HTMLDivElement>(null);
-
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
 
+  const sidebarItems = useMemo(() => {
+    if (!data?.data) return newTemplates;
+    return [
+      ...newTemplates,
+      ...data.data.map(dt => ({
+        ...dt,
+        content: contentCache[dt.id] ?? dt.content
+      }))
+    ];
+  }, [data, newTemplates, contentCache]);
+
+  const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0, pageSize: 10 };
 
   useEffect(() => {
-    if (data?.data) {
-      setPagination(data.pagination);
-
-      setTemplates(prev => {
-        const unsaved = prev.filter(t => t.id.startsWith('new-'));
-        const merged = data.data.map(dt => {
-          const existing = prev.find(t => t.id === dt.id);
-          return existing?.content !== undefined ? { ...dt, content: existing.content } : dt;
-        });
-        const newList = [...unsaved, ...merged];
-
-        setSelectedTemplate(curr => {
-          if (!curr && newList.length > 0 && unsaved.length === 0) return newList[0];
-          if (curr && !curr.id.startsWith('new-')) {
-            const updated = newList.find(t => t.id === curr.id);
-            if (updated) return updated;
-          }
-          return curr;
-        });
-
-        return newList;
-      });
+    if (selectedTemplate) {
+      const exists = sidebarItems.find(t => t.id === selectedTemplate.id);
+      if (!exists && sidebarItems.length > 0 && !isLoading) {
+        // Current selection was deleted, pick the first one from the current (potentially new) page
+        setSelectedTemplate(sidebarItems[0]);
+      } else if (exists && (exists.title !== selectedTemplate.title || exists.content !== selectedTemplate.content)) {
+        // Sync metadata if it changed in background
+        setSelectedTemplate(exists);
+      }
+    } else if (sidebarItems.length > 0 && !isLoading) {
+      // No selection at all, pick first
+      setSelectedTemplate(sidebarItems[0]);
     }
-  }, [data]);
+  }, [sidebarItems, isLoading, selectedTemplate]);
 
   const variables = [
     { name: 'Date', code: '{{date}}', desc: 'Current Date' },
@@ -135,11 +136,8 @@ export function Templates() {
           try {
             content = await fetchTemplateContent(selectedTemplate.file);
 
-            // Cache the content so we don't fetch it again
-            setTemplates(prev => prev.map(t =>
-              t.id === selectedTemplate.id ? { ...t, content: content } : t
-            ));
-
+            // Cache the content
+            setContentCache(prev => ({ ...prev, [selectedTemplate.id]: content! }));
             setSelectedTemplate(prev => prev && prev.id === selectedTemplate.id ? { ...prev, content: content } : prev);
           } catch (e) {
             console.error("Failed to load file content:", e);
@@ -173,7 +171,7 @@ export function Templates() {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    setTemplates([newTemplate, ...templates]);
+    setNewTemplates([newTemplate, ...newTemplates]);
     setSelectedTemplate(newTemplate);
   };
 
@@ -195,16 +193,26 @@ export function Templates() {
           createdAt: new Date(),
           updatedAt: new Date()
         });
-        savedTemplate.content = markdown;
-        setTemplates(prev => [savedTemplate, ...prev.filter(t => t.id !== selectedTemplate.id)]);
-        toast.success('New template created!');
+        setNewTemplates(prev => prev.filter(t => t.id !== selectedTemplate.id));
       } else {
         savedTemplate = await updateTemplate({
           id: selectedTemplate.id,
           updates: { title: editedName, content: markdown }
         });
+      }
+
+      // Use the content we just saved if the backend didn't return it for some reason
+      if (savedTemplate.content === undefined) {
         savedTemplate.content = markdown;
-        setTemplates(prev => prev.map(t => t.id === selectedTemplate.id ? savedTemplate : t));
+      }
+
+      // Update our local content cache
+      setContentCache(prev => ({ ...prev, [savedTemplate.id]: markdown }));
+
+      if (isNew) {
+        setNewTemplates(prev => prev.filter(t => t.id !== selectedTemplate.id));
+        toast.success('New template created!');
+      } else {
         toast.success('Template updated!');
       }
 
@@ -230,10 +238,15 @@ export function Templates() {
       toast.success('Template deleted');
 
       const isDeletingSelected = selectedTemplate?.id === templateToDelete.id;
+      if (isDeletingSelected) setSelectedTemplate(null);
 
-      if (isDeletingSelected) {
-        setSelectedTemplate(null);
-      }
+      // Cleanup local state
+      setNewTemplates(prev => prev.filter(t => t.id !== templateToDelete.id));
+      setContentCache(prev => {
+        const next = { ...prev };
+        delete next[templateToDelete.id];
+        return next;
+      });
     } catch (error) {
       toast.error('Failed to delete template');
     }
@@ -339,7 +352,7 @@ export function Templates() {
             Manage RTI templates for RTI generation.
           </p>
         </div>
-        {templates.length > 0 && (
+        {(pagination.totalItems > 0 || newTemplates.length > 0) && (
           <Button onClick={addNewTemplate} className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
             <Plus className="w-4 h-4" /> New Template
           </Button>
@@ -348,37 +361,43 @@ export function Templates() {
 
       <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:overflow-hidden">
         {/* Sidebar */}
-        {templates.length > 0 && (
+        {(pagination.totalItems > 0 || newTemplates.length > 0) && (
           <div className="w-full lg:w-60 h-80 lg:h-auto flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex-shrink-0">
             <div className="p-3 border-b border-gray-200 bg-gray-50/50 font-semibold text-xs uppercase tracking-wider text-gray-500">
               Saved Templates
             </div>
             <div className="flex-1 overflow-y-auto">
-              {templates.map((template: Template) => (
-                <div key={template.id} className="group relative">
-                  <button
-                    onClick={() => handleSelect(template)}
-                    className={`w-full text-left p-4 border-b border-gray-100 text-sm transition-all relative ${selectedTemplate?.id === template.id
-                      ? 'bg-blue-50 text-blue-900 font-medium'
-                      : 'hover:bg-gray-50 text-gray-600'
-                      }`}
-                  >
-                    {selectedTemplate?.id === template.id && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
-                    )}
-                    {template.title}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteTemplate(template.id, template.title);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+              {sidebarItems.length > 0 ? (
+                sidebarItems.map((template: Template) => (
+                  <div key={template.id} className="group relative">
+                    <button
+                      onClick={() => handleSelect(template)}
+                      className={`w-full text-left p-4 border-b border-gray-100 text-sm transition-all relative ${selectedTemplate?.id === template.id
+                        ? 'bg-blue-50 text-blue-900 font-medium'
+                        : 'hover:bg-gray-50 text-gray-600'
+                        }`}
+                    >
+                      {selectedTemplate?.id === template.id && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
+                      )}
+                      {template.title}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTemplate(template.id, template.title);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-xs text-gray-400 italic">
+                  No templates on this page
                 </div>
-              ))}
+              )}
             </div>
             {/* Pagination Controls */}
             <div className="p-3 border-t border-gray-100 bg-gray-50/30">
@@ -387,7 +406,7 @@ export function Templates() {
                 totalPages={pagination.totalPages}
                 onPageChange={(nextPage) => setCurrentPage(nextPage)}
                 variant="simple"
-                loading={isLoading}
+                loading={isLoading || isFetching}
               />
 
             </div>
@@ -396,7 +415,7 @@ export function Templates() {
 
         {/* Smart Editor or Empty State */}
         <div className="flex-1 min-h-[600px] lg:min-h-0 flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden relative">
-          {templates.length > 0 && selectedTemplate ? (
+          {(pagination.totalItems > 0 || newTemplates.length > 0) && selectedTemplate ? (
             <>
               <div className="p-3 border-b border-gray-200 bg-white flex flex-wrap justify-between items-center gap-2 z-10">
                 <div className="flex items-center gap-2 flex-1 min-w-[150px]">
@@ -479,10 +498,14 @@ export function Templates() {
                 data-enable-grammarly="false"
               />
             </>
-          ) : isLoading ? (
+          ) : isLoading && !data ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50/50">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
               <p className="text-gray-500 text-sm">Loading templates...</p>
+            </div>
+          ) : (pagination.totalItems > 0 || newTemplates.length > 0) ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/50 text-gray-500">
+              Select a template from the sidebar to start editing.
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/50">
@@ -497,7 +520,7 @@ export function Templates() {
         </div>
 
         {/* Variables */}
-        {templates.length > 0 && (
+        {(pagination.totalItems > 0 || newTemplates.length > 0) && (
           <div className="w-full lg:w-60 h-[350px] lg:h-auto flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex-shrink-0">
             <div className="p-3 border-b border-gray-200 bg-gray-50/50 font-semibold text-xs uppercase tracking-wider text-gray-500">
               Variables
