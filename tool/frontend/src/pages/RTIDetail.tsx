@@ -368,13 +368,8 @@ export function RTIDetail() {
                                   >
                                     <button
                                       onClick={() => {
-                                        const fileName = file.split('/').pop() || 'document.pdf';
                                         const fileUrl = file.startsWith('http') ? file : `${import.meta.env.VITE_FILE_STORAGE_BASE_URL}/${file}`;
-
-                                        const link = document.createElement('a');
-                                        link.href = fileUrl;
-                                        link.download = fileName;
-                                        link.click();
+                                        window.open(fileUrl, '_blank', 'noopener,noreferrer');
                                       }}
                                       className="flex items-center gap-1.5 hover:text-blue-900"
                                     >
