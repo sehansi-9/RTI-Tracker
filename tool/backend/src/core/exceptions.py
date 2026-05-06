@@ -1,6 +1,24 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from src.models.common import ErrorResponse
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime, timezone
+from typing import Any
+from fastapi.exceptions import RequestValidationError
+
+class ErrorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+    # attributes
+    status: int = Field(..., description="HTTP status code")
+    error: str = Field(..., description="Short error category")
+    message: str = Field(..., description="Human-readable error detail")
+    details: list[dict[str, Any]] | None = Field(       
+        default=None,
+        description="Optional list of field-level validation errors"
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="ISO 8601 timestamp of when the error occurred (UTC)"
+    )
 
 class BaseAPIException(Exception):
     """Base exception for all API errors."""
@@ -25,6 +43,13 @@ class BadRequestException(BaseAPIException):
     def __init__(self, message: str = "Bad request"):
         super().__init__(message)
 
+class ConflictException(BaseAPIException):
+    status_code = status.HTTP_409_CONFLICT
+    error_code = "Resource Conflict"
+    
+    def __init__(self, message: str = "A resource conflict occurred."):
+        super().__init__(message)
+
 class UnauthorizedException(BaseAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     error_code = "Unauthorized"
@@ -46,13 +71,6 @@ class NotFoundException(BaseAPIException):
     def __init__(self, message: str = "The requested resource was not found."):
         super().__init__(message)
 
-class ConflictException(BaseAPIException):
-    status_code = status.HTTP_409_CONFLICT
-    error_code = "Resource Conflict"
-    
-    def __init__(self, message: str = "A resource conflict occurred."):
-        super().__init__(message)
-
 class UnprocessableEntityException(BaseAPIException):
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     error_code = "Unprocessable Entity"
@@ -72,5 +90,31 @@ async def api_exception_handler(request: Request, exc: BaseAPIException):
     return JSONResponse(
         status_code=exc.status_code,
         content=exc.to_response().model_dump(mode="json")
+    )
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+
+    details = []
+
+    for err in exc.errors():
+        loc = err.get("loc", [])
+        field = ".".join(str(x) for x in loc if x != "body")
+        message = err.get("msg", "Invalid request payload")
+
+        details.append({
+            "field": field or "invalid_input_field",
+            "message": message
+        })
+
+    response = ErrorResponse(       
+        status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        error="Validation Error",
+        message="Invalid request payload",
+        details=details,
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content=response.model_dump(mode="json")
     )
     

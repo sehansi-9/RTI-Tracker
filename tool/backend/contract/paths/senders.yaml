@@ -1,5 +1,5 @@
 /senders:
-  # Create a new sender 
+  # Create a new sender
   post:
     summary: Create a sender
     operationId: createSender

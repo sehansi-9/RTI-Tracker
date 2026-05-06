@@ -1,0 +1,185 @@
+/rti-requests:
+  # Create a new RTI request
+  post:
+    summary: Create an RTI request
+    operationId: createRTIRequest
+    description: Creates a new RTI request record linking a sender, receiver, and
+      optionally an RTI template.
+    tags:
+      - RTI Requests
+    security:
+      - opaqueBearerToken: []
+    requestBody:
+      required: true
+      description: JSON request body with RTI request metadata.
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestRequest"
+    responses:
+      "201":
+        description: RTI request created successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              title: Request for Budget Information 2024
+              description: Requesting documents related to the 2024 healthcare budget
+                regarding medical supplies.
+              senderId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              receiverId: f47ac10b-58cc-4372-a567-0e02b2c3d479
+              rtiTemplateId: b9d02c84-8f1b-4835-9730-84a28f804561
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-03-31T09:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "422":
+        $ref: "../components/responses/Errors.yaml#/UnprocessableEntity"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # List all RTI requests with pagination
+  get:
+    summary: List all RTI requests
+    operationId: listRTIRequests
+    description: Returns a paginated list of all RTI requests.
+    tags:
+      - RTI Requests
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/Pagination.yaml#/PageParam"
+      - $ref: "../components/parameters/Pagination.yaml#/PageSizeParam"
+    responses:
+      "200":
+        description: A paginated list of RTI requests.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestListResponse"
+            example:
+              data:
+                - id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  title: Request for Budget Information 2024
+                  description: Requesting documents related to the 2024 healthcare budget
+                    regarding medical supplies.
+                  senderId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  receiverId: f47ac10b-58cc-4372-a567-0e02b2c3d479
+                  rtiTemplateId: b9d02c84-8f1b-4835-9730-84a28f804561
+                  createdAt: "2026-03-31T09:00:00Z"
+                  updatedAt: "2026-03-31T09:00:00Z"
+              pagination:
+                page: 1
+                pageSize: 20
+                totalItems: 42
+                totalPages: 3
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+/rti-requests/{id}:
+  # Get a single RTI request by ID
+  get:
+    summary: Get an RTI request by ID
+    operationId: getRTIRequestById
+    description: Returns a single RTI request identified by its UUID.
+    tags:
+      - RTI Requests
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    responses:
+      "200":
+        description: RTI request found and returned successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              title: Request for Budget Information 2024
+              description: Requesting documents related to the 2024 healthcare budget
+                regarding medical supplies.
+              senderId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              receiverId: f47ac10b-58cc-4372-a567-0e02b2c3d479
+              rtiTemplateId: b9d02c84-8f1b-4835-9730-84a28f804561
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-03-31T09:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # Update an existing RTI request
+  put:
+    summary: Update an RTI request
+    operationId: updateRTIRequest
+    description: Fully replaces an RTI request identifying it by UUID.
+    tags:
+      - RTI Requests
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    requestBody:
+      required: true
+      description: JSON request body with updated RTI request data.
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestRequest"
+    responses:
+      "200":
+        description: RTI request updated successfully.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/RTIRequests.yaml#/RTIRequestResponse"
+            example:
+              id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              title: Updated Request Title
+              description: Updated description for the RTI request.
+              senderId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              receiverId: f47ac10b-58cc-4372-a567-0e02b2c3d479
+              rtiTemplateId: b9d02c84-8f1b-4835-9730-84a28f804561
+              createdAt: "2026-03-31T09:00:00Z"
+              updatedAt: "2026-04-01T10:00:00Z"
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "422":
+        $ref: "../components/responses/Errors.yaml#/UnprocessableEntity"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"
+
+  # Delete an RTI request
+  delete:
+    summary: Delete an RTI request
+    operationId: deleteRTIRequest
+    description: Permanently deletes an RTI request by UUID. Returns 204 No Content
+      on success. If the resource is linked with other resources (e.g., status
+      history), it cannot be deleted.
+    tags:
+      - RTI Requests
+    security:
+      - opaqueBearerToken: []
+    parameters:
+      - $ref: "../components/parameters/object.yaml#/ObjectId"
+    responses:
+      "204":
+        description: RTI request deleted successfully. No content returned.
+      "401":
+        $ref: "../components/responses/Errors.yaml#/Unauthorized"
+      "404":
+        $ref: "../components/responses/Errors.yaml#/NotFound"
+      "409":
+        $ref: "../components/responses/Errors.yaml#/Conflict"
+      "500":
+        $ref: "../components/responses/Errors.yaml#/InternalServerError"

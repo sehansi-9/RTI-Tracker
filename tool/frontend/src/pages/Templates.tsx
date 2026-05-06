@@ -9,7 +9,38 @@ import { Pagination } from '../components/Pagination';
 import { SmartEditor, SmartEditorRef } from '../components/SmartEditor';
 import { RTI_VARIABLES } from '../utils/variableUtils';
 
+// import { useAsgardeo } from '@asgardeo/react'; import this to use the http client provided by IdP
+
+
 export function Templates() {
+
+  // const { http, isSignedIn } = useAsgardeo(); grab these states. signin check and the http client for authenticated http requests
+
+  // example request porcedure
+  // useEffect(() => {
+  //   if (!isSignedIn) {
+  //     return;
+  //   }
+
+  //   (async () => {
+  //     try {
+  //       since we are using the http client provided by the IdP , the token get injected when the request is made.
+  //       const response = await http.request({
+  //         url: '<base-url>/scim2/Me',
+  //         headers: {
+  //           Accept: 'application/json',
+  //           'Content-Type': 'application/scim+json',
+  //         },
+  //         method: 'GET',
+  //       });
+
+  //       setUserData(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching user data:', error);
+  //     }
+  //   })();
+  // }, [http, isSignedIn]);
+
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -91,4 +91,67 @@ test.describe('Receivers Management', () => {
     await expect(page.getByText('Receiver deleted')).toBeVisible();
   });
 
+  test('validates email and contact number requirements', async ({ page }) => {
+    await page.getByRole('button', { name: 'New Receiver' }).click();
+
+    const emailInput = page.getByPlaceholder('receiver@example.com');
+    const phoneInput = page.getByPlaceholder('0xxxxxxxx or +94xxxxxxxxx');
+    const submitBtn = page.getByRole('button', { name: 'Create Receiver' });
+
+    // 1. Try to submit empty 
+    await submitBtn.click();
+    await expect(page.getByText('Email or Contact No is required')).toBeVisible();
+    await expect(page.getByText('Institution is required')).toBeVisible();
+    await expect(page.getByText('Position is required')).toBeVisible();
+
+    // 2. invalid email formats
+    await emailInput.fill('test@example');
+    await submitBtn.click();
+    await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+    await emailInput.fill('testexample.com');
+    await submitBtn.click();
+    await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+    await emailInput.fill('');
+
+    // 3. invalid Sri Lankan phone number
+    await phoneInput.fill('123456');
+    await submitBtn.click();
+    await expect(page.getByText(/Please enter a valid Sri Lankan phone number \(e\.g\. 0771234567 or \+94771234567\)/)).toBeVisible();
+
+    // 4. +94 prefix format
+    await phoneInput.fill('+94771234567');
+    await expect(page.getByText(/Please enter a valid Sri Lankan phone number \(e\.g\. 0771234567 or \+94771234567\)/)).not.toBeVisible();
+
+    // 7. hyphen stripping 
+    await phoneInput.fill('077-123-4567');
+    await expect(phoneInput).toHaveValue('0771234567');
+    await expect(page.getByText(/Please enter a valid Sri Lankan phone number \(e\.g\. 0771234567 or \+94771234567\)/)).not.toBeVisible();
+
+    // 8. positioning (Input filter)
+    await phoneInput.fill('07+7123');
+    await expect(phoneInput).toHaveValue('077123');
+
+    // 9. Verify address is optional
+    const addressInput = page.getByPlaceholder('Address (optional)');
+    await addressInput.fill('');
+
+    // Fill required fields to verify final submission
+    const instWrapper = page.locator('.relative').filter({ has: page.getByPlaceholder('Select institution') });
+    await instWrapper.getByPlaceholder('Select institution').click();
+    const instOption = instWrapper.locator('.absolute .cursor-pointer').first();
+    await expect(instOption).toBeVisible();
+    await instOption.click();
+
+    const posWrapper = page.locator('.relative').filter({ has: page.getByPlaceholder('Select position') });
+    await posWrapper.getByPlaceholder('Select position').click();
+    const posOption = posWrapper.locator('.absolute .cursor-pointer').first();
+    await expect(posOption).toBeVisible();
+    await posOption.click();
+
+    await phoneInput.fill('0771234567');
+    await emailInput.fill('final@example.com');
+    await submitBtn.click();
+    await expect(page.getByText('Receiver created')).toBeVisible();
+  });
+
 });

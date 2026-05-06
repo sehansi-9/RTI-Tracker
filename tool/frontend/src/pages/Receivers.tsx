@@ -27,9 +27,13 @@ type TabKey = 'receivers' | 'institutions' | 'positions';
 const receiverSchema = yup.object().shape({
   institutionId: yup.string().required('Institution is required'),
   positionId: yup.string().required('Position is required'),
-  email: yup.string().nullable().transform(v => v === '' ? null : v)
-    .email('Please enter a valid email address'),
-  contactNo: yup.string().nullable().transform(v => v === '' ? null : v),
+  email: yup.string().trim().nullable().transform(v => v === '' ? null : v)
+    .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email address'),
+  contactNo: yup.string().trim().nullable().transform(v => v === '' ? null : v)
+    .test('is-sl-phone', 'Please enter a valid Sri Lankan phone number (e.g. 0771234567 or +94771234567)', value => {
+      if (!value) return true;
+      return /^(?:\+94|0)[1-9][0-9]{8}$/.test(value);
+    }),
   address: yup.string().nullable().transform(v => v === '' ? null : v),
 }).test('contact-required', 'Either Email or Contact No is required', function (value) {
   if (!value.email && !value.contactNo) {
@@ -321,8 +325,12 @@ export function Receivers() {
                   className={`px-3 py-2 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-900 ${receiverErrors.contactNo ? 'border-red-500' : ''}`}
                   {...field}
                   value={field.value || ''}
-                  onChange={e => field.onChange(e.target.value.replace(/[^0-9\-]/g, ''))}
-                  placeholder="Phone number"
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9+]/g, '');
+                    const sanitized = val.replace(/(?!^)\+/g, '');
+                    field.onChange(sanitized);
+                  }}
+                  placeholder="0xxxxxxxx or +94xxxxxxxxx"
                 />
               )}
             />
