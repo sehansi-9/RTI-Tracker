@@ -5,7 +5,7 @@ import { toFormData } from '../utils/formUtils';
 const SLEEP_MS = 500;
 const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
 
-const TEMPLATE_BASE_URL = import.meta.env.VITE_TEMPLATE_BASE_URL || 'https://storage.rti.api/templates/';
+const FILE_STORAGE_BASE_URL = import.meta.env.VITE_FILE_STORAGE_BASE_URL || 'https://storage.rti.api/templates/';
 
 export const rtiRequestsService = {
   async list(page: number, pageSize: number, search?: string) {
@@ -49,7 +49,7 @@ export const rtiRequestsService = {
     // Handle template file link if necessary
     let templateFile = r.template?.file || '-';
     if (templateFile !== '-' && !templateFile.startsWith('http') && templateFile !== '') {
-      templateFile = `${TEMPLATE_BASE_URL}${templateFile}`;
+      templateFile = `${FILE_STORAGE_BASE_URL}${templateFile}`;
     }
 
     return {

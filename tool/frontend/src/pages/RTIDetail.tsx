@@ -369,7 +369,7 @@ export function RTIDetail() {
                                     <button
                                       onClick={() => {
                                         const fileName = file.split('/').pop() || 'document.pdf';
-                                        const fileUrl = file.startsWith('http') ? file : `${import.meta.env.VITE_TEMPLATE_BASE_URL.replace('/templates/', '')}/${file}`;
+                                        const fileUrl = file.startsWith('http') ? file : `${import.meta.env.VITE_FILE_STORAGE_BASE_URL}/${file}`;
 
                                         const link = document.createElement('a');
                                         link.href = fileUrl;
