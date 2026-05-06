@@ -38,14 +38,12 @@ export function Templates() {
   useEffect(() => {
     if (selectedTemplate) {
       const exists = sidebarItems.find(t => t.id === selectedTemplate.id);
-      if (!exists && sidebarItems.length > 0 && !isLoading) {
-        // Current selection was deleted, pick the first one from the current (potentially new) page
+      if (!exists && sidebarItems.length > 0 && !isLoading && !isFetching) {
         setSelectedTemplate(sidebarItems[0]);
       } else if (exists && (exists.title !== selectedTemplate.title || exists.content !== selectedTemplate.content)) {
-        // Sync metadata if it changed in background
         setSelectedTemplate(exists);
       }
-    } else if (sidebarItems.length > 0 && !isLoading) {
+    } else if (sidebarItems.length > 0 && !isLoading && !isFetching) {
       // No selection at all, pick first
       setSelectedTemplate(sidebarItems[0]);
     }
