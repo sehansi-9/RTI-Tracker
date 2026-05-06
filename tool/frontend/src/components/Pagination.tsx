@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 
@@ -24,6 +25,13 @@ export function Pagination({
   className = '',
   loading = false
 }: PaginationProps) {
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0 && !loading) {
+      onPageChange(totalPages);
+    }
+  }, [currentPage, totalPages, onPageChange, loading]);
+
   if (totalPages <= 1 && variant === 'simple') return null;
 
   // Simple Variant
@@ -156,11 +164,10 @@ export function Pagination({
                   onClick={() => onPageChange(page as number)}
                   aria-current={isCurrent ? 'page' : undefined}
                   disabled={loading}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                    isCurrent
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${isCurrent
                       ? 'z-10 bg-blue-900 text-white focus-visible:outline-blue-900'
                       : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
-                  } ${loading ? 'cursor-wait disabled:opacity-70' : ''}`}
+                    } ${loading ? 'cursor-wait disabled:opacity-70' : ''}`}
                 >
                   {page}
                 </button>
