@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { templateService } from '../services/templateService';
 import { useAsgardeo } from '@asgardeo/react';
 import { Template } from '../types/rti';
+import { ListResponse } from '../types/api';
 import { useCallback } from 'react';
 
 export const useTemplates = (page: number = 1, pageSize: number = 10) => {
@@ -31,7 +32,7 @@ export const useTemplates = (page: number = 1, pageSize: number = 10) => {
       queryClient.setQueryData(['template', updatedTemplate.id], updatedTemplate);
 
       // 2. Update the template in any cached list queries
-      queryClient.setQueriesData({ queryKey: ['templates'] }, (oldData: any) => {
+      queryClient.setQueriesData({ queryKey: ['templates'] }, (oldData: ListResponse<Template> | undefined) => {
         if (!oldData || !oldData.data) return oldData;
         return {
           ...oldData,

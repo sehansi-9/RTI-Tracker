@@ -1,7 +1,10 @@
 import { Template } from '../types/rti';
+import { AsgardeoContextProps } from '@asgardeo/react';
+import { ListResponse } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000'
 const FILE_STORAGE_BASE_URL = import.meta.env.VITE_FILE_STORAGE_BASE_URL;
+
 /**
  * Helper to convert template fields and content into Multipart FormData.
  */
@@ -24,15 +27,7 @@ export const templateService = {
   /**
    * Fetches templates with pagination
    */
-  getRTITemplates: async (page: number = 1, pageSize: number = 10, httpClient?: any): Promise<{
-    data: Template[],
-    pagination: {
-      page: number,
-      pageSize: number,
-      totalItems: number,
-      totalPages: number
-    }
-  }> => {
+  getRTITemplates: async (page: number = 1, pageSize: number = 10, httpClient?: AsgardeoContextProps['http']): Promise<ListResponse<Template>> => {
     if (httpClient) {
       const response = await httpClient.request({
         url: `${API_BASE_URL}/api/v1/rti_templates`,
@@ -51,7 +46,7 @@ export const templateService = {
   /**
    * Fetch a single RTI template by ID
    */
-  getRTITemplateById: async (id: string, httpClient?: any): Promise<Template> => {
+  getRTITemplateById: async (id: string, httpClient?: AsgardeoContextProps['http']): Promise<Template> => {
     if (httpClient) {
       const response = await httpClient.request({
         url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
@@ -66,7 +61,7 @@ export const templateService = {
   /**
    * Create a new RTI template
    */
-  createRTITemplate: async (template: Omit<Template, 'id'>, httpClient?: any): Promise<Template> => {
+  createRTITemplate: async (template: Omit<Template, 'id'>, httpClient?: AsgardeoContextProps['http']): Promise<Template> => {
     const formData = toFormData(template.title, template.description, template.content);
 
     console.log(`[POST] Calling createRTITemplate for: ${template.title}`);
@@ -86,7 +81,7 @@ export const templateService = {
   /**
    * Update an existing RTI template
    */
-  updateRTITemplate: async (id: string, updates: Partial<Template>, httpClient?: any): Promise<Template> => {
+  updateRTITemplate: async (id: string, updates: Partial<Template>, httpClient?: AsgardeoContextProps['http']): Promise<Template> => {
     const formData = toFormData(updates.title, updates.description, updates.content);
 
     console.log(`[PUT] Calling updateRTITemplate for ID: ${id}`);
@@ -124,7 +119,7 @@ export const templateService = {
   /**
    * Delete an RTI template
    */
-  deleteRTITemplate: async (id: string, httpClient?: any): Promise<void> => {
+  deleteRTITemplate: async (id: string, httpClient?: AsgardeoContextProps['http']): Promise<void> => {
 
     console.log(`[DELETE] Calling deleteRTITemplate for ID: ${id}`);
 
