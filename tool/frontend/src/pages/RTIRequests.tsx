@@ -16,7 +16,7 @@ import { receiversService } from '../services/receiversService';
 import { RTIRequest, Sender, Receiver } from '../types/db';
 import { Template } from '../types/rti';
 import { Column } from '../types/table';
-import { mockSenders } from '../data/mockData';
+import { sendersService } from '../services/sendersService';
 import { getVariableValues } from '../utils/variableUtils';
 
 
@@ -66,11 +66,12 @@ export function RTIRequests() {
 
   const loadLookups = async () => {
     try {
-      const [r, t] = await Promise.all([
+      const [s, r, t] = await Promise.all([
+        sendersService.listSenders(1, 100),
         receiversService.listReceivers(1, 6),
         templateService.getRTITemplates(1, 100)
       ]);
-      setSenders(mockSenders);
+      setSenders(s.data);
       setReceivers(r.data);
       setTemplates(t.data);
     } catch (e) {
