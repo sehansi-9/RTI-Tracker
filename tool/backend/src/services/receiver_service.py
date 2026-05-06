@@ -60,6 +60,7 @@ class ReceiverService:
     ) -> ReceiverListResponse:
         try:
             offset = (page - 1) * page_size
+            query = query.strip() if query else None
             search_pattern = f"%{query}%" if query else None
             
             # Base filter condition
