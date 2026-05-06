@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status, Path
+from fastapi import APIRouter, Depends, Query, status, Path, Response
 from typing_extensions import Annotated
 from src.services import RTIStatusService
 from src.repositories.db import SessionDep
@@ -46,13 +46,14 @@ def update_rti_status_put_endpoint(
 ):
     return service.update_rti_status_put(rti_status_id=id, rti_status_request=rti_status_request)
 
-@router.delete("/rti_statuses/{id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/rti_statuses/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_rti_status_endpoint(
     id: Annotated[UUID, Path(title="ID of the RTI status")],
     service: RTIStatusService = Depends(get_rti_status_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
-    return service.delete_rti_status(rti_status_id=id)
+    service.delete_rti_status(rti_status_id=id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status, Path
+from fastapi import APIRouter, Depends, Query, status, Path, Response
 from typing_extensions import Annotated
 from src.services import PositionService
 from src.repositories.db import SessionDep
@@ -48,11 +48,12 @@ def update_position_put_endpoint(
 ):
     return service.update_position_put(position_id=position_id, position_request=position_request)
 
-@router.delete("/positions/{position_id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/positions/{position_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_position_endpoint(
     position_id: Annotated[UUID, Path(title="ID of the position")],
     service: PositionService = Depends(get_position_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
-    return service.delete_position(position_id=position_id)
+    service.delete_position(position_id=position_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
     

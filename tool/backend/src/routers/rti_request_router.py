@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, UploadFile, File, Query, Path
+from fastapi import APIRouter, Depends, Form, UploadFile, File, Query, Path, status, Response
 from typing import Annotated, Optional
 from uuid import UUID
 
@@ -81,13 +81,13 @@ async def update_rti_request_endpoint(
     response = await service.update_rti_request(request_data=request_data)
     return response
 
-@router.delete("/rti_requests/{id}", status_code=204)
+@router.delete("/rti_requests/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_rti_request_endpoint(
     id: Annotated[UUID, Path(title="ID of the RTI Request")],
     service: RTIRequestService = Depends(get_rti_request_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
     await service.delete_rti_request(request_id=id)
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     

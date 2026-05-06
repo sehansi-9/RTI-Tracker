@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import Annotated, List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Query, Depends, Path, Form, UploadFile, File
+from fastapi import APIRouter, Query, Depends, Path, Form, UploadFile, File, status, Response
 
 from src.models import (
     User, 
@@ -104,7 +104,7 @@ async def update_rti_request_history_endpoint(
         request_data=request_data
     )
 
-@router.delete("/rti_requests/{rti_id}/histories/{history_id}", status_code=204)
+@router.delete("/rti_requests/{rti_id}/histories/{history_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_rti_request_history_endpoint(
     rti_id: Annotated[UUID, Path(title="ID of the RTI Request")],
     history_id: Annotated[UUID, Path(title="ID of the RTI Status History")],
@@ -115,6 +115,6 @@ async def delete_rti_request_history_endpoint(
         rti_request_id=rti_id,
         history_id=history_id
     )
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

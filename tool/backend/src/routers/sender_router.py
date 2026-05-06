@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status, Path
+from fastapi import APIRouter, Depends, Query, status, Path, Response
 from typing_extensions import Annotated
 from src.services import SenderService
 from src.repositories.db import SessionDep
@@ -46,13 +46,14 @@ def update_sender_put_endpoint(
 ):
     return service.update_sender_put(sender_id=sender_id, sender_request=sender_request)
 
-@router.delete("/senders/{sender_id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/senders/{sender_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_sender_endpoint(
     sender_id: Annotated[UUID, Path(title="ID of the sender")],
     service: SenderService = Depends(get_sender_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER]))
 ):
-    return service.delete_sender(sender_id=sender_id)
+    service.delete_sender(sender_id=sender_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 
