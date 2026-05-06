@@ -5,6 +5,7 @@ import { Pagination } from './api';
 export interface Column<T> {
   header: string;
   accessor?: keyof T;
+  cell?: (item: T) => React.ReactNode;
   className?: string;
   headerClassName?: string;
   render?: (item: T, index: number) => React.ReactNode;
