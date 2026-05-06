@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from './utils/apiMock';
 
 test.describe('Receivers Management', () => {
 
   test.beforeEach(async ({ page }) => {
+    await setupApiMocks(page);
     // Start at the receivers page
     await page.goto('/receivers');
   });
@@ -56,7 +58,7 @@ test.describe('Receivers Management', () => {
     await expect(page.getByPlaceholder('Name')).toHaveValue('Gringotts Bank');
     await page.getByRole('button', { name: 'Create' }).click();
 
-    // SHOULD REDIRECT BACK TO RECEIVER MODAL
+    // redirecting back to receiver modal
     await expect(page.getByRole('heading', { name: 'New Receiver' })).toBeVisible();
 
     // Verify Gringotts is selected (SearchableSelect shows the name in the input value)

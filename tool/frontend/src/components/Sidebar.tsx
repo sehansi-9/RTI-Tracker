@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { FileCode, Users } from 'lucide-react';
+import { FileCode, Users, FileText, Activity } from 'lucide-react';
 
 import { useAsgardeo } from "@asgardeo/react";
 
@@ -17,11 +17,21 @@ export function Sidebar() {
       name: 'Receivers',
       path: '/receivers',
       icon: Users
+    },
+    {
+      name: 'RTI Requests',
+      path: '/rti-requests',
+      icon: FileText
+    },
+    {
+      name: 'Statuses',
+      path: '/statuses',
+      icon: Activity
     }
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+    <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 h-screen overflow-y-auto flex flex-col">
       <div className="p-4 border-b border-gray-200">
         <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-900 rounded flex items-center justify-center">
