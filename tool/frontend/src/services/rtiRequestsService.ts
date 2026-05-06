@@ -134,18 +134,27 @@ export const rtiRequestsService = {
     db.statusHistories = db.statusHistories.filter(h => h.rtiRequestId !== id);
   },
 
-  async addHistory(payload: Partial<RTIStatusHistory> & { fileUploads?: File[] }) {
+  async addHistory(payload: {
+    rtiRequestId: string;
+    statusId: string;
+    direction: 'incoming' | 'outgoing';
+    description?: string | null;
+    files?: File[];
+  }) {
     await sleep();
     const entryTime = new Date();
+    const status = db.statuses.find(s => s.id === payload.statusId);
+    if (!status) throw new Error('Status not found');
+
     const newEntry: RTIStatusHistory = {
       id: crypto.randomUUID(),
-      rtiRequestId: payload.rtiRequestId!,
-      status: payload.status!,
-      direction: payload.direction!,
+      rtiRequestId: payload.rtiRequestId,
+      status: status,
+      direction: payload.direction,
       description: payload.description || '',
       entryTime: entryTime,
       exitTime: null,
-      files: payload.fileUploads ? payload.fileUploads.map(f => `https://storage.rti.api/requests/${f.name}`) : [],
+      files: payload.files ? payload.files.map(f => `https://storage.rti.api/requests/${f.name}`) : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -177,18 +186,34 @@ export const rtiRequestsService = {
     return newEntry;
   },
 
-  async updateHistory(id: string, payload: Partial<RTIStatusHistory> & { fileUploads?: File[] }) {
+  async updateHistory(id: string, payload: {
+    statusId?: string;
+    direction?: 'incoming' | 'outgoing';
+    description?: string | null;
+    filesToAdd?: File[];
+    filesToDelete?: string[];
+  }) {
     await sleep();
     const index = db.statusHistories.findIndex(h => h.id === id);
     if (index === -1) throw new Error('Entry not found');
 
     const entry = db.statusHistories[index];
-    const uploadedFiles = payload.fileUploads ? payload.fileUploads.map(f => `https://storage.rti.api/requests/${f.name}`) : [];
+    const uploadedFiles = payload.filesToAdd ? payload.filesToAdd.map(f => `https://storage.rti.api/requests/${f.name}`) : [];
+    
+    let updatedFiles = [...entry.files];
+    if (payload.filesToDelete && payload.filesToDelete.length > 0) {
+      updatedFiles = updatedFiles.filter(f => !payload.filesToDelete!.includes(f));
+    }
+    updatedFiles = [...updatedFiles, ...uploadedFiles];
+
+    const updatedStatus = payload.statusId ? db.statuses.find(s => s.id === payload.statusId) : entry.status;
 
     db.statusHistories[index] = {
       ...entry,
-      ...payload,
-      files: [...(payload.files || entry.files), ...uploadedFiles],
+      direction: payload.direction || entry.direction,
+      description: payload.description !== undefined ? payload.description : entry.description,
+      status: updatedStatus || entry.status,
+      files: updatedFiles,
       updatedAt: new Date(),
     };
 

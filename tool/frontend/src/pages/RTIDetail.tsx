@@ -90,12 +90,14 @@ export function RTIDetail() {
 
     try {
       if (isEditing && selectedEntry) {
+        const filesToDelete = selectedEntry.files.filter(f => !eventFormData.existingFiles.includes(f));
+
         const updated = await rtiRequestsService.updateHistory(selectedEntry.id, {
-          status: completedStatus,
+          statusId: selectedStatusToSave!.id,
           direction: eventFormData.direction,
           description: eventFormData.description,
-          files: eventFormData.existingFiles,
-          fileUploads: eventFormData.newFiles
+          filesToAdd: eventFormData.newFiles,
+          filesToDelete: filesToDelete
         });
         setHistory(prev => prev.map(h => h.id === selectedEntry.id ? updated : h));
         setRequest(prev => prev ? { ...prev, updatedAt: new Date() } : null);
@@ -103,10 +105,10 @@ export function RTIDetail() {
       } else {
         await rtiRequestsService.addHistory({
           rtiRequestId: id,
-          status: completedStatus,
+          statusId: selectedStatusToSave!.id,
           direction: eventFormData.direction,
           description: eventFormData.description,
-          fileUploads: eventFormData.newFiles
+          files: eventFormData.newFiles
         });
         // Re-fetch full history so previous entry's exitTime is reflected
         const updatedHistory = await rtiRequestsService.getHistory(id);
@@ -147,10 +149,10 @@ export function RTIDetail() {
     try {
       await rtiRequestsService.addHistory({
         rtiRequestId: id,
-        status: completedStatus,
+        statusId: completedStatus.id,
         direction: 'incoming',
         description: 'Request marked as completed.',
-        fileUploads: []
+        files: []
       });
       // Re-fetch full history so previous entry's exitTime is reflected
       const updatedHistory = await rtiRequestsService.getHistory(id);
