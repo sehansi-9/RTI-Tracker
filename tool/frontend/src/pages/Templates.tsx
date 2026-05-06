@@ -18,7 +18,7 @@ export function Templates() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string, title: string } | null>(null);
 
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<SmartEditorRef>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
 
@@ -51,81 +51,6 @@ export function Templates() {
     }
   }, [sidebarItems, isLoading, selectedTemplate]);
 
-  const variables = [
-    { name: 'Date', code: '{{date}}', desc: 'Current Date' },
-    { name: 'Sender Name', code: '{{sender_name}}', desc: 'Applicant Name' },
-    { name: 'Sender Email', code: '{{sender_email}}', desc: 'Applicant Email' },
-    { name: 'Sender Address', code: '{{sender_address}}', desc: 'Applicant Address' },
-    { name: 'Sender Contact No', code: '{{sender_contact_no}}', desc: 'Applicant Contact No' },
-    { name: 'Receiver Institution', code: '{{receiver_institution}}', desc: 'Target Institution' },
-    { name: 'Receiver Position', code: '{{receiver_position}}', desc: 'Target Position' },
-    { name: 'Receiver Email', code: '{{receiver_email}}', desc: 'Receiver Email' },
-    { name: 'Receiver Address', code: '{{receiver_address}}', desc: 'Receiver Address' },
-    { name: 'Receiver Contact No', code: '{{receiver_contact_no}}', desc: 'Receiver Contact No' },
-  ];
-
-  // Helper to create a pill element
-  const createPillHtml = (code: string, name: string) => {
-    return `<span class="pill-chip inline-flex items-center gap-1 pl-2 pr-1 py-0.5 border border-blue-200 rounded mx-0.5 bg-blue-100 text-blue-800 text-xs font-semibold align-baseline cursor-default select-none" data-code="${code}" contenteditable="false">${name}<span class="pill-remove hover:bg-blue-300 rounded px-1 cursor-pointer opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center font-bold ml-0.5" onclick="this.parentElement.remove()">×</span></span>`;
-  };
-
-  // Convert Markdown to HTML with pills and formatting
-  const parseMarkdownToHtml = (markdown: string) => {
-    let html = markdown || '';
-
-    // 1. Handle Bold & Italic
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'); // double asterik bold
-    html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>'); // single asterik italic
-    html = html.replace(/(?<!_|\{)_([^_\{}]+)_(?!_|\})/g, '<em>$1</em>'); // underscore italic
-
-    // 2. Handle variables (pills)
-    html = html.replace(/{{([^}]+)}}/g, (match, p1) => {
-      const formatted = p1.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-      return createPillHtml(match, formatted);
-    });
-
-    // 3. Handle lines and headings
-    html = html.split('\n').map(line => {
-      if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
-      if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
-      return line ? `<div>${line}</div>` : `<div><br></div>`;
-    }).join('');
-
-    return html;
-  };
-
-  // Convert HTML back to Markdown
-  const serializeHtmlToMarkdown = (html: string) => {
-    let cleanHtml = html.replace(/<br\s*\/?>/gi, '\n'); // Convert brs to \n
-
-    cleanHtml = cleanHtml.replace(/<div[^>]*>/gi, '\n'); // Convert opening divs to a newline
-    cleanHtml = cleanHtml.replace(/<\/div>/gi, ''); // Erase closing divs
-    cleanHtml = cleanHtml.replace(/<p[^>]*>/gi, '\n'); // Convert opening paragraphs to a newline
-    cleanHtml = cleanHtml.replace(/<\/p>/gi, ''); // Erase closing paragraphs
-
-    cleanHtml = cleanHtml.replace(/<h1[^>]*>/gi, '\n# '); // Convert Heading 1 into a newline + markdown '# '
-    cleanHtml = cleanHtml.replace(/<\/h1>/gi, ''); // Erase closing h1
-    cleanHtml = cleanHtml.replace(/<h2[^>]*>/gi, '\n## '); // Convert Heading 2 into a newline + markdown '## '
-    cleanHtml = cleanHtml.replace(/<\/h2>/gi, ''); // Erase closing h2
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = cleanHtml;
-
-    const pills = tempDiv.querySelectorAll('.pill-chip');
-    pills.forEach((pill) => {
-      const code = pill.getAttribute('data-code');
-      pill.replaceWith(code || '');
-    });
-
-    const bolds = tempDiv.querySelectorAll('strong, b');
-    bolds.forEach(bold => bold.replaceWith(`**${bold.textContent}**`));
-
-    const italics = tempDiv.querySelectorAll('em, i');
-    italics.forEach(italic => italic.replaceWith(`*${italic.textContent}*`));
-
-    let text = tempDiv.textContent || '';
-    return text.replace(/\n{3,}/g, '\n\n').trim();
-  };
 
   // Sync editor when template changes
   useEffect(() => {
@@ -134,9 +59,9 @@ export function Templates() {
         let content = selectedTemplate.content;
 
         // load the file content from the service if haven't already fetched it
-        if (content === undefined && selectedTemplate.file) {
+        if (content === undefined && selectedTemplate.file && !selectedTemplate.id.startsWith('new-')) {
           try {
-            content = await templateService.getTemplateContent(selectedTemplate.file);
+            content = await fetchTemplateContent(selectedTemplate.file);
 
             // Cache the content
             setContentCache(prev => ({ ...prev, [selectedTemplate.id]: content! }));
@@ -174,6 +99,9 @@ export function Templates() {
     };
     setNewTemplates([newTemplate, ...newTemplates]);
     setSelectedTemplate(newTemplate);
+    if (editorRef.current) {
+      editorRef.current.setMarkdown('');
+    }
   };
 
   const saveTemplate = async () => {
@@ -238,7 +166,7 @@ export function Templates() {
 
     try {
       if (!isNew) {
-        await templateService.deleteRTITemplate(idToDelete);
+        await removeTemplate(idToDelete);
       }
 
       toast.success('Template deleted');
