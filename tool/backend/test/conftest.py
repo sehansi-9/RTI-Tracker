@@ -298,6 +298,14 @@ def receiver_db():
     pos1 = Position(id=uuid.uuid4(), name="Position 1", created_at=now, updated_at=now)
     inst1 = Institution(id=uuid.uuid4(), name="Institution 1", created_at=now, updated_at=now)
 
+    pos_legal    = Position(id=uuid.uuid4(), name="Legal Officer",    created_at=now, updated_at=now)
+    pos_director = Position(id=uuid.uuid4(), name="Director General", created_at=now, updated_at=now)
+    pos_admin    = Position(id=uuid.uuid4(), name="Admin Assistant",  created_at=now, updated_at=now)
+
+    inst_health  = Institution(id=uuid.uuid4(), name="Ministry of Health",  created_at=now, updated_at=now)
+    inst_finance = Institution(id=uuid.uuid4(), name="Ministry of Finance", created_at=now, updated_at=now)
+    inst_police  = Institution(id=uuid.uuid4(), name="Sri Lanka Police",    created_at=now, updated_at=now)
+
     receivers = [
         Receiver(
             id=uuid.uuid4(),
@@ -323,44 +331,14 @@ def receiver_db():
             created_at=now,
             updated_at=now,
         ),
+        Receiver(id=uuid.uuid4(), position=pos_legal,    institution=inst_health,  email="r1@example.com", created_at=now - timedelta(hours=2), updated_at=now - timedelta(hours=2)),
+        Receiver(id=uuid.uuid4(), position=pos_director, institution=inst_finance, email="r2@example.com", created_at=now - timedelta(hours=1), updated_at=now - timedelta(hours=1)),
+        Receiver(id=uuid.uuid4(), position=pos_admin,    institution=inst_police,  email="r3@example.com", created_at=now,                     updated_at=now),
     ]
     
     with Session(engine) as session:
         session.add(pos1)
         session.add(inst1)
-        session.add_all(receivers)
-        session.commit()
-        yield session
-
-@pytest.fixture
-def search_receiver_db():
-    """In-memory DB seeded with distinct institutions & positions for search filter tests."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    SQLModel.metadata.create_all(engine)
-    now = datetime.now(timezone.utc)
-
-    pos_legal    = Position(id=uuid.uuid4(), name="Legal Officer",    created_at=now, updated_at=now)
-    pos_director = Position(id=uuid.uuid4(), name="Director General", created_at=now, updated_at=now)
-    pos_admin    = Position(id=uuid.uuid4(), name="Admin Assistant",  created_at=now, updated_at=now)
-
-    inst_health  = Institution(id=uuid.uuid4(), name="Ministry of Health",  created_at=now, updated_at=now)
-    inst_finance = Institution(id=uuid.uuid4(), name="Ministry of Finance", created_at=now, updated_at=now)
-    inst_police  = Institution(id=uuid.uuid4(), name="Sri Lanka Police",    created_at=now, updated_at=now)
-
-    receivers = [
-        Receiver(id=uuid.uuid4(), position=pos_legal,    institution=inst_health,  email="r1@example.com", created_at=now - timedelta(hours=2), updated_at=now - timedelta(hours=2)),
-        Receiver(id=uuid.uuid4(), position=pos_director, institution=inst_finance, email="r2@example.com", created_at=now - timedelta(hours=1), updated_at=now - timedelta(hours=1)),
-        Receiver(id=uuid.uuid4(), position=pos_admin,    institution=inst_police,  email="r3@example.com", created_at=now,                     updated_at=now),
-    ]
-
-    with Session(engine) as session:
         session.add_all([pos_legal, pos_director, pos_admin, inst_health, inst_finance, inst_police])
         session.add_all(receivers)
         session.commit()
