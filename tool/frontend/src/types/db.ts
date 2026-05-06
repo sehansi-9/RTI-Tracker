@@ -66,7 +66,7 @@ export interface RTIRequest {
     id: string;
     title: string;
     file: string;
-  };
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 }

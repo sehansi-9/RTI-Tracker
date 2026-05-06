@@ -56,10 +56,10 @@ export const rtiRequestsService = {
     return {
       ...r,
       referenceId: r.referenceId || r.id.split('-')[1]?.toUpperCase(),
-      template: {
+      template: r.template ? {
         ...r.template,
         file: templateFile
-      }
+      } : null
     };
   },
 
@@ -99,7 +99,7 @@ export const rtiRequestsService = {
       description: payload.description || null,
       sender: sender!,
       receiver: receiver!,
-      template: template!,
+      template: template || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
