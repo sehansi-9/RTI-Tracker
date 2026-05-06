@@ -130,15 +130,16 @@ export function RTIRequests() {
     }
   };
 
-  const handleStartFromScratch = () => {
-    setFormData(prev => ({ ...prev, templateId: 'scratch', content: '', title: '' }));
-    setStep(2);
-  };
+  const handleTemplateSelect = async (templateId?: string, fileLink?: string, title?: string) => {
+    if (!templateId) {
+      setFormData(prev => ({ ...prev, templateId: '', content: '', title: '' }));
+      setStep(2);
+      return;
+    }
 
-  const handleTemplateSelect = async (templateId: string, fileLink: string, title: string) => {
     try {
-      const content = await templateService.getTemplateContent(fileLink);
-      setFormData(prev => ({ ...prev, templateId, content: content || '', title }));
+      const content = await templateService.getTemplateContent(fileLink!);
+      setFormData(prev => ({ ...prev, templateId, content: content || '', title: title || '' }));
       setStep(2);
     } catch (e) {
       toast.error('Failed to load template content');
@@ -171,7 +172,7 @@ export function RTIRequests() {
         description: formData.description,
         senderId: formData.senderId,
         receiverId: formData.receiverId,
-        rtiTemplateId: formData.templateId === 'scratch' ? '' : formData.templateId,
+        rtiTemplateId: formData.templateId || undefined,
         content: finalMarkdown,
         file: pdfFile,
       });
@@ -254,7 +255,7 @@ export function RTIRequests() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {selectionMode === 'none' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto pt-8">
-                  <div className="group bg-white border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center text-center hover:border-blue-900 hover:bg-blue-50/30 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl" onClick={handleStartFromScratch}>
+                  <div className="group bg-white border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center text-center hover:border-blue-900 hover:bg-blue-50/30 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl" onClick={() => handleTemplateSelect()}>
                     <div className="bg-blue-100 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-900 group-hover:text-white transition-all duration-300 transform group-hover:scale-110">
                       <Save className="w-10 h-10 text-blue-900 group-hover:text-white" />
                     </div>
@@ -306,7 +307,7 @@ export function RTIRequests() {
                 <h2 className="text-xl font-bold text-gray-900">Step 2: Configure Request Details</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className={`space-y-6 ${formData.templateId === 'scratch' ? 'max-w-2xl mx-auto w-full' : ''}`}>
+                <div className={`space-y-6 ${!formData.templateId ? 'max-w-2xl mx-auto w-full' : ''}`}>
                   <div className="flex flex-col space-y-1">
                     <Input label="Request Title" placeholder="e.g., Annual Budget Report 2023" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
                     {showErrors && !formData.title && <FieldError error="Request title is required" />}
