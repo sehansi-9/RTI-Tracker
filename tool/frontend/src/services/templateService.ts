@@ -129,14 +129,10 @@ export const templateService = {
     console.log(`[DELETE] Calling deleteRTITemplate for ID: ${id}`);
 
     if (httpClient) {
-      try {
-        await httpClient.request({
-          url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
-          method: 'DELETE',
-        });
-      } catch (e) {
-        console.error(e)
-      }
+      await httpClient.request({
+        url: `${API_BASE_URL}/api/v1/rti_templates/${id}`,
+        method: 'DELETE',
+      });
       return;
     }
 
