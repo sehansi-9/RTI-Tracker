@@ -1,6 +1,6 @@
 import { ProtectedRoute } from '@asgardeo/react-router';
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { Layout } from './components/Layout';
 import { LoginRedirect } from './components/LoginRedirect';
@@ -27,6 +27,7 @@ export function App() {
             </ProtectedRoute>
           )
         }>
+          <Route index element={<Navigate to="templates" replace />} />
           <Route path="templates" element={<Templates />} />
           <Route path="receivers" element={<Receivers />} />
           <Route path="rti-requests" element={<RTIRequests />} />

@@ -279,6 +279,7 @@ export function Receivers() {
             title="Receiver"
             onAdd={() => openReceiverModal()}
             {...receiversHook}
+            loading={receiversHook.isLoading || receiversHook.isFetching || isAnyMutating}
             onPageChange={p => updateParams('receivers', { page: p })}
             onPageSizeChange={s => updateParams('receivers', { pageSize: s, page: 1 })}
             searchTerm={params.receivers.search}
@@ -294,6 +295,7 @@ export function Receivers() {
             title={tab === 'institutions' ? 'Institution' : 'Position'}
             onAdd={() => openNameModal(tab === 'institutions' ? 'institution' : 'position')}
             {...(tab === 'institutions' ? institutionsHook : positionsHook)}
+            loading={(tab === 'institutions' ? (institutionsHook.isLoading || institutionsHook.isFetching) : (positionsHook.isLoading || positionsHook.isFetching)) || isAnyMutating}
             onPageChange={p => updateParams(tab, { page: p })}
             onPageSizeChange={s => updateParams(tab, { pageSize: s, page: 1 })}
             searchTerm={params[tab].search}
