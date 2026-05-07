@@ -35,7 +35,7 @@ async def get_rti_request_histories_endpoint(
     service: RTIRequestHistoryService = Depends(get_rti_request_history_service),
     user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.USER])),
 ):
-    return service.get_rti_request_histories(
+    return service.get_rti_request_histories_by_id(
         rti_request_id=id,
         page=page,
         page_size=page_size,
