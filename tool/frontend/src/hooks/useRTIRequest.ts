@@ -27,3 +27,13 @@ export function useRTIRequestList(page: number = 1, pageSize: number = 10, searc
     isDeleting: deleteMutation.isPending,
   };
 }
+
+export function useRTIRequestDetail(id: string) {
+  const { http, isSignedIn } = useAsgardeo();
+
+  return useQuery({
+    queryKey: ['rti-requests', id],
+    queryFn: () => rtiRequestsService.getById(id, http),
+    enabled: !!isSignedIn && !!id,
+  });
+}

@@ -62,7 +62,7 @@ export interface RTIRequest {
     institution: { id: string; name: string };
     position: { id: string; name: string };
   };
-  template: {
+  rtiTemplate: {
     id: string;
     title: string;
     file: string;
@@ -79,7 +79,7 @@ export interface RTIStatus {
 export interface RTIStatusHistory {
   id: string;
   rtiRequestId: string;
-  status: RTIStatus;
+  rtiStatus: RTIStatus;
   direction: 'received' | 'sent';
   description: string | null;
   entryTime: Date;

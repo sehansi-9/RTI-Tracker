@@ -4,6 +4,8 @@ import { RTIStatus } from '../types/db';
 const SLEEP_MS = 500;
 const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
 
+const BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
+
 export const statusService = {
   async list(page: number, pageSize: number, search?: string) {
     await sleep();
@@ -28,7 +30,15 @@ export const statusService = {
     };
   },
 
-  async getAll(): Promise<RTIStatus[]> {
+  async getAll(httpClient?: any): Promise<RTIStatus[]> {
+    if (httpClient) {
+      const response = await httpClient.request({
+        url: `${BASE_URL}/api/v1/rti_statuses`,
+        params: { page: 1, pageSize: 100 },
+        method: 'GET',
+      });
+      return response.data.data;
+    }
     await sleep();
     return [...db.statuses];
   },
