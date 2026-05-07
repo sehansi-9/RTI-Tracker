@@ -13,6 +13,7 @@ import { TabButton } from '../components/TabButton';
 import { FormLabel } from '../components/FormLabel';
 import { FieldError } from '../components/FieldError';
 
+
 import { receiversService } from '../services/receiversService';
 import { institutionService } from '../services/institutionService';
 import { positionService } from '../services/positionService';
@@ -49,10 +50,64 @@ const nameEntitySchema = yup.object({
 export function Receivers() {
   const [tab, setTab] = useState<TabKey>('receivers');
 
+  // Pagination and Search State
+  const [params, setParams] = useState({
+    receivers: { page: 1, pageSize: 10, search: '' },
+    institutions: { page: 1, pageSize: 10, search: '' },
+    positions: { page: 1, pageSize: 10, search: '' }
+  });
+
   // Entities Hook Instances
-  const receiversHook = useEntityData(receiversService.listReceivers, receiversService.removeReceiver, 'Receiver');
-  const institutionsHook = useEntityData(institutionService.listInstitutions, institutionService.removeInstitution, 'Institution');
-  const positionsHook = useEntityData(positionService.listPositions, positionService.removePosition, 'Position');
+  const receiversHook = useEntityData<Receiver>(
+    'receivers',
+    {
+      list: receiversService.listReceivers,
+      create: receiversService.createReceiver,
+      update: receiversService.updateReceiver,
+      delete: receiversService.removeReceiver
+    },
+    params.receivers.page,
+    params.receivers.pageSize,
+    params.receivers.search,
+    (p) => updateParams('receivers', { page: p })
+  );
+
+  const institutionsHook = useEntityData<Institution>(
+    'institutions',
+    {
+      list: institutionService.listInstitutions,
+      create: institutionService.createInstitution,
+      update: institutionService.updateInstitution,
+      delete: institutionService.removeInstitution
+    },
+    params.institutions.page,
+    params.institutions.pageSize,
+    params.institutions.search,
+    (p) => updateParams('institutions', { page: p })
+  );
+
+  const positionsHook = useEntityData<Position>(
+    'positions',
+    {
+      list: positionService.getPositions,
+      create: positionService.createPosition,
+      update: positionService.updatePosition,
+      delete: positionService.removePosition
+    },
+    params.positions.page,
+    params.positions.pageSize,
+    params.positions.search,
+    (p) => updateParams('positions', { page: p })
+  );
+
+  const isAnyMutating = receiversHook.isMutating || institutionsHook.isMutating || positionsHook.isMutating;
+
+  const updateParams = (key: TabKey, updates: any) => {
+    setParams(prev => ({
+      ...prev,
+      [key]: { ...prev[key], ...updates }
+    }));
+  };
 
   // Deletion state
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: TabKey } | null>(null);
@@ -93,8 +148,8 @@ export function Receivers() {
 
   // Column Definitions
   const receiverColumns: Column<Receiver>[] = useMemo(() => [
-    { header: 'Institution', render: (r: Receiver) => r.institution?.name, className: 'font-medium text-gray-900' },
-    { header: 'Position', render: (r: Receiver) => r.position?.name, className: 'text-gray-700' },
+    { header: 'Institution', cell: (r) => r.institution?.name || '-', className: 'font-medium text-gray-900' },
+    { header: 'Position', cell: (r) => r.position?.name || '-', className: 'text-gray-700' },
     { header: 'Email', accessor: 'email', className: 'text-gray-600' },
     { header: 'Contact No', accessor: 'contactNo', className: 'text-gray-600' },
     { header: 'Address', accessor: 'address', className: 'text-gray-600' },
@@ -127,14 +182,16 @@ export function Receivers() {
 
   const onSaveReceiver = async (data: { institutionId?: string, positionId?: string, email?: string | null, contactNo?: string | null, address?: string | null }) => {
     try {
-      if (receiverEdit) await receiversService.updateReceiver(receiverEdit.id, data);
-      else await receiversService.createReceiver(data);
-
-      toast.success(`Receiver ${receiverEdit ? 'updated' : 'created'}`);
+      if (receiverEdit) {
+        await receiversHook.confirmUpdate(receiverEdit.id, data);
+        toast.success('Receiver updated');
+      } else {
+        await receiversHook.confirmCreate(data);
+        toast.success('Receiver created');
+      }
       setReceiverModalOpen(false);
-      await receiversHook.refresh(true);
-    } catch (e) {
-      toast.error((e as Error).message || 'Failed to save receiver');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to save receiver');
     }
   };
 
@@ -149,7 +206,7 @@ export function Receivers() {
 
     // Duplicate Validation (using existing data from hooks)
     const list = type === 'institution' ? institutionsHook.data : positionsHook.data;
-    const duplicate = list.find(i => i.name.toLowerCase() === name.toLowerCase() && i.id !== edit?.id);
+    const duplicate = list.find((i: Institution | Position) => i.name.toLowerCase() === name.toLowerCase() && i.id !== edit?.id);
 
     if (duplicate) {
       toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} "${name}" already exists.`);
@@ -166,14 +223,14 @@ export function Receivers() {
     try {
       let res: any;
       if (type === 'institution') {
-        res = edit ? await institutionService.updateInstitution(edit.id, { name }) : await institutionService.createInstitution({ name });
-        await institutionsHook.refresh(true);
+        if (edit) res = await institutionsHook.confirmUpdate(edit.id, { name });
+        else res = await institutionsHook.confirmCreate({ name });
       } else {
-        res = edit ? await positionService.updatePosition(edit.id, { name }) : await positionService.createPosition({ name });
-        await positionsHook.refresh(true);
+        if (edit) res = await positionsHook.confirmUpdate(edit.id, { name });
+        else res = await positionsHook.confirmCreate({ name });
       }
 
-      toast.success(`${type} ${edit ? 'updated' : 'created'}`);
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} ${edit ? 'updated' : 'created'}`);
 
       if (!edit && redirectType === type && res) {
         setReceiverValue(`${type}Id` as any, res.id);
@@ -182,18 +239,22 @@ export function Receivers() {
       }
       setNameModal(s => ({ ...s, open: false }));
       setRedirectType(null);
-    } catch (e) {
-      toast.error((e as Error).message || `Failed to save ${type}`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || `Failed to save ${type}`);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     const { id, type } = deleteConfirm;
-    if (type === 'receivers') await receiversHook.confirmDelete(id);
-    else if (type === 'institutions') await institutionsHook.confirmDelete(id);
-    else await positionsHook.confirmDelete(id);
+    const hook = type === 'receivers' ? receiversHook : (type === 'institutions' ? institutionsHook : positionsHook);
     setDeleteConfirm(null);
+    try {
+      await hook.confirmDelete(id);
+      toast.success(`${type.slice(0, -1)} deleted`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || `Failed to delete ${type.slice(0, -1)}`);
+    }
   };
 
   return (
@@ -219,6 +280,11 @@ export function Receivers() {
             title="Receiver"
             onAdd={() => openReceiverModal()}
             {...receiversHook}
+            loading={receiversHook.isLoading || receiversHook.isFetching || isAnyMutating}
+            onPageChange={p => updateParams('receivers', { page: p })}
+            onPageSizeChange={s => updateParams('receivers', { pageSize: s, page: 1 })}
+            searchTerm={params.receivers.search}
+            onSearch={s => updateParams('receivers', { search: s, page: 1 })}
             columns={receiverColumns}
             onEdit={openReceiverModal}
             onDelete={r => setDeleteConfirm({ id: r.id, type: 'receivers' })}
@@ -230,11 +296,14 @@ export function Receivers() {
             title={tab === 'institutions' ? 'Institution' : 'Position'}
             onAdd={() => openNameModal(tab === 'institutions' ? 'institution' : 'position')}
             {...(tab === 'institutions' ? institutionsHook : positionsHook)}
-            searchTerm={undefined}
-            onSearch={undefined}
+            loading={(tab === 'institutions' ? (institutionsHook.isLoading || institutionsHook.isFetching) : (positionsHook.isLoading || positionsHook.isFetching)) || isAnyMutating}
+            onPageChange={p => updateParams(tab, { page: p })}
+            onPageSizeChange={s => updateParams(tab, { pageSize: s, page: 1 })}
+            // searchTerm={params[tab].search}
+            // onSearch={s => updateParams(tab, { search: s, page: 1 })}
             columns={simpleEntityColumns}
             onEdit={item => openNameModal(tab === 'institutions' ? 'institution' : 'position', item)}
-            onDelete={item => setDeleteConfirm({ id: item.id, type: tab })}
+            onDelete={(item: Institution | Position) => setDeleteConfirm({ id: item.id, type: tab })}
           />
         )}
       </div>
@@ -245,7 +314,7 @@ export function Receivers() {
         message={`Are you sure you want to delete this ${deleteConfirm?.type.slice(0, -1)}?`}
         onCancel={() => setDeleteConfirm(null)}
         onConfirm={handleDelete}
-        confirmText="Delete"
+        confirmText={isAnyMutating ? "Deleting..." : "Delete"}
       />
 
       <Modal
@@ -254,8 +323,10 @@ export function Receivers() {
         onClose={() => setReceiverModalOpen(false)}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setReceiverModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleReceiverSubmit(onSaveReceiver)}>{receiverEdit ? 'Save Changes' : 'Create Receiver'}</Button>
+            <Button variant="secondary" onClick={() => setReceiverModalOpen(false)} disabled={isAnyMutating}>Cancel</Button>
+            <Button onClick={handleReceiverSubmit(onSaveReceiver)} disabled={isAnyMutating}>
+              {isAnyMutating ? 'Saving...' : (receiverEdit ? 'Save Changes' : 'Create Receiver')}
+            </Button>
           </>
         }
       >
@@ -362,8 +433,10 @@ export function Receivers() {
         onClose={() => setNameModal(s => ({ ...s, open: false }))}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setNameModal(s => ({ ...s, open: false }))}>Cancel</Button>
-            <Button onClick={handleNameSubmit(onSaveNameEntity)}>{nameModal.edit ? 'Save Changes' : 'Create'}</Button>
+            <Button variant="secondary" onClick={() => setNameModal(s => ({ ...s, open: false }))} disabled={isAnyMutating}>Cancel</Button>
+            <Button onClick={handleNameSubmit(onSaveNameEntity)} disabled={isAnyMutating}>
+              {isAnyMutating ? 'Saving...' : (nameModal.edit ? 'Save Changes' : 'Create')}
+            </Button>
           </>
         }
       >

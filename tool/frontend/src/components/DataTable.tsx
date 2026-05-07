@@ -61,7 +61,7 @@ export function DataTable<T>({
     content = <div className="p-10 text-center text-sm text-gray-500">{emptyMessage}</div>;
   } else {
     content = (
-      <div className="overflow-x-auto overflow-y-auto max-h-[370px] relative">
+      <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-300px)] min-h-[200px] relative">
         {loading && (
           <div className="absolute inset-0 bg-white/40 z-20 flex items-center justify-center backdrop-blur-[1px]">
             <div className="flex flex-col items-center gap-2">
@@ -86,7 +86,7 @@ export function DataTable<T>({
               <tr key={(item as any).id} className="hover:bg-gray-50/50">
                 {columns.map((col, i) => (
                   <td key={i} className={`px-4 py-3 ${col.className || ''}`}>
-                    {col.render ? col.render(item, rowIndex) : (col.accessor ? String((item as any)[col.accessor] ?? '-') : '-')}
+                    {col.cell ? col.cell(item) : (col.accessor ? String((item as any)[col.accessor] ?? '-') : '-')}
                   </td>
                 ))}
 

@@ -1,46 +1,47 @@
 import { Institution } from '../types/db';
-import { db } from './mockState';
 
-const SLEEP_MS = 500;
-const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
+const BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
 
 export const institutionService = {
-  async listInstitutions(page: number, pageSize: number) {
-    await sleep();
-
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return {
-      data: db.institutions.slice(start, end),
-      pagination: {
-        page,
-        pageSize,
-        totalItems: db.institutions.length,
-        totalPages: Math.ceil(db.institutions.length / pageSize)
-      }
-    };
+  listInstitutions: async (page: number = 1, pageSize: number = 10, _search?: string, httpClient?: any): Promise<{
+    data: Institution[],
+    pagination: {
+      page: number,
+      pageSize: number,
+      totalItems: number,
+      totalPages: number
+    }
+  }> => {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/institutions`,
+      params: { page, pageSize },
+      method: 'GET',
+    });
+    return response.data;
   },
 
-  async createInstitution(payload: { name: string }) {
-    await sleep();
-    const newInst: Institution = {
-      id: `inst-${Date.now()}`,
-      name: payload.name,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    db.setInstitutions([newInst, ...db.institutions]);
-    return newInst;
+  async createInstitution(payload: { name: string }, httpClient?: any) {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/institutions`,
+      method: 'POST',
+      data: payload,
+    });
+    return response.data;
   },
 
-  async updateInstitution(id: string, payload: { name: string }) {
-    await sleep();
-    db.setInstitutions(db.institutions.map(i => i.id === id ? { ...i, ...payload, updatedAt: new Date() } : i));
-    return db.institutions.find(i => i.id === id);
+  async updateInstitution(id: string, payload: { name: string }, httpClient?: any) {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/institutions/${id}`,
+      method: 'PUT',
+      data: payload,
+    });
+    return response.data;
   },
 
-  async removeInstitution(id: string) {
-    await sleep();
-    db.setInstitutions(db.institutions.filter(i => i.id !== id));
+  async removeInstitution(id: string, httpClient?: any) {
+    await httpClient.request({
+      url: `${BASE_URL}/api/v1/institutions/${id}`,
+      method: 'DELETE'
+    });
   }
 };

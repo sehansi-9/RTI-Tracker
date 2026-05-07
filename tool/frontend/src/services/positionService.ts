@@ -1,46 +1,47 @@
 import { Position } from '../types/db';
-import { db } from './mockState';
 
-const SLEEP_MS = 500;
-const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
+const BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
 
 export const positionService = {
-  async listPositions(page: number, pageSize: number) {
-    await sleep();
-
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return {
-      data: db.positions.slice(start, end),
-      pagination: {
-        page,
-        pageSize,
-        totalItems: db.positions.length,
-        totalPages: Math.ceil(db.positions.length / pageSize)
-      }
-    };
+  getPositions: async (page: number = 1, pageSize: number = 10, _search?: string, httpClient?: any): Promise<{
+    data: Position[],
+    pagination: {
+      page: number,
+      pageSize: number,
+      totalItems: number,
+      totalPages: number
+    }
+  }> => {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/positions`,
+      params: { page, pageSize },
+      method: 'GET',
+    });
+    return response.data;
   },
 
-  async createPosition(payload: { name: string }) {
-    await sleep();
-    const newPos: Position = {
-      id: `pos-${Date.now()}`,
-      name: payload.name,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    db.setPositions([newPos, ...db.positions]);
-    return newPos;
+  async createPosition(payload: { name: string }, httpClient?: any) {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/positions`,
+      method: 'POST',
+      data: payload,
+    });
+    return response.data;
   },
 
-  async updatePosition(id: string, payload: { name: string }) {
-    await sleep();
-    db.setPositions(db.positions.map(p => p.id === id ? { ...p, ...payload, updatedAt: new Date() } : p));
-    return db.positions.find(p => p.id === id);
+  async updatePosition(id: string, payload: { name: string }, httpClient?: any) {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/positions/${id}`,
+      method: 'PUT',
+      data: payload,
+    });
+    return response.data;
   },
 
-  async removePosition(id: string) {
-    await sleep();
-    db.setPositions(db.positions.filter(p => p.id !== id));
+  async removePosition(id: string, httpClient?: any) {
+    await httpClient.request({
+      url: `${BASE_URL}/api/v1/positions/${id}`,
+      method: 'DELETE'
+    });
   }
 };

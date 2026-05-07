@@ -20,17 +20,20 @@ import { sendersService } from '../services/sendersService';
 import { getVariableValues } from '../utils/variableUtils';
 
 
+import { useRTIRequestList } from '../hooks/useRTIRequest';
+
 type View = 'list' | 'create';
 
 export function RTIRequests() {
   const navigate = useNavigate();
   const [view, setView] = useState<View>('list');
-  const [isLoading, setIsLoading] = useState(true);
-  const [rows, setRows] = useState<RTIRequest[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalItems: 0, pageSize: 10 });
   const [search, setSearch] = useState('');
-
+  const [pageParams, setPageParams] = useState({ page: 1, pageSize: 10 });
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const rtiRequestsHook = useRTIRequestList(pageParams.page, pageParams.pageSize, search);
+  const rows = rtiRequestsHook.data;
+  const pagination = rtiRequestsHook.pagination;
 
   // Creation Flow State
   const [step, setStep] = useState(1);
@@ -51,19 +54,6 @@ export function RTIRequests() {
     requestDate: new Date().toISOString().split('T')[0]
   });
 
-  const loadData = async (page = 1, pageSize = pagination.pageSize, searchTerm = search) => {
-    setIsLoading(true);
-    try {
-      const res = await rtiRequestsService.list(page, pageSize, searchTerm);
-      setRows(res.data);
-      setPagination(p => ({ ...p, ...res.pagination }));
-    } catch (e) {
-      toast.error((e as Error).message || 'Failed to load RTI requests');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const loadLookups = async () => {
     try {
       const [s, r, t] = await Promise.all([
@@ -79,14 +69,11 @@ export function RTIRequests() {
     }
   };
 
-
   useEffect(() => {
-    if (view === 'list') {
-      loadData(pagination.page, pagination.pageSize, search);
-    } else {
+    if (view === 'create') {
       loadLookups();
     }
-  }, [view, pagination.page, pagination.pageSize, search]);
+  }, [view]);
 
   useEffect(() => {
     if (view === 'create') {
@@ -120,9 +107,8 @@ export function RTIRequests() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     try {
-      await rtiRequestsService.remove(deleteId);
+      await rtiRequestsHook.confirmDelete(deleteId);
       toast.success('RTI request deleted');
-      loadData(rows.length === 1 && pagination.page > 1 ? pagination.page - 1 : pagination.page);
     } catch (e) {
       toast.error('Failed to delete');
     } finally {
@@ -179,6 +165,7 @@ export function RTIRequests() {
 
       toast.success(`RTI request ${isDispatch ? 'dispatched' : 'saved'} and PDF downloaded`);
       setView('list');
+      rtiRequestsHook.refetch();
     } catch (e) {
       console.error('PDF Generation Error:', e);
       toast.error('Failed to generate or save RTI request');
@@ -186,19 +173,10 @@ export function RTIRequests() {
   };
 
   const columns: Column<RTIRequest>[] = [
-    {
-      header: 'Ref',
-      render: (_: RTIRequest, index: number) => {
-        const page = pagination.page || 1;
-        const size = pagination.pageSize || 10;
-        const displayId = ((page - 1) * size) + index + 1;
-        return <span className="font-mono text-xs text-gray-500 font-bold">{displayId.toString()}</span>;
-      }
-    },
     { header: 'Title', accessor: 'title', className: 'font-medium text-gray-900' },
     {
       header: 'Receiver',
-      render: (r: RTIRequest) => (
+      cell: (r: RTIRequest) => (
         <div className="flex flex-col">
           <span className="text-sm font-semibold text-gray-900">{r.receiver?.institution?.name}</span>
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">{r.receiver?.position?.name}</span>
@@ -207,7 +185,7 @@ export function RTIRequests() {
     },
     {
       header: 'Last Updated',
-      render: (r: RTIRequest) => (
+      cell: (r: RTIRequest) => (
         <span className="text-xs text-gray-500">
           {new Date(r.updatedAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </span>
@@ -394,10 +372,10 @@ export function RTIRequests() {
           onSearch={setSearch}
           data={rows}
           columns={columns}
-          loading={isLoading}
+          loading={rtiRequestsHook.isLoading || rtiRequestsHook.isFetching || rtiRequestsHook.isDeleting}
           pagination={pagination}
-          onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
-          onPageSizeChange={(size) => setPagination(prev => ({ ...prev, page: 1, pageSize: size }))}
+          onPageChange={(p) => setPageParams(prev => ({ ...prev, page: p }))}
+          onPageSizeChange={(size) => setPageParams(prev => ({ ...prev, page: 1, pageSize: size }))}
           onView={(r) => navigate(`/rti-requests/${r.id}`)}
           onDelete={(r) => setDeleteId(r.id)}
         />
@@ -409,7 +387,7 @@ export function RTIRequests() {
         message="Are you sure you want to delete this RTI request? This action cannot be undone."
         onCancel={() => setDeleteId(null)}
         onConfirm={confirmDelete}
-        confirmText="Delete"
+        confirmText={rtiRequestsHook.isDeleting ? "Deleting..." : "Delete"}
       />
     </div>
   );

@@ -6,39 +6,16 @@ const SLEEP_MS = 500;
 const sleep = () => new Promise(resolve => setTimeout(resolve, SLEEP_MS));
 
 const FILE_STORAGE_BASE_URL = import.meta.env.VITE_FILE_STORAGE_BASE_URL || 'https://storage.rti.api/templates/';
+const BASE_URL = import.meta.env.VITE_RTI_TRACKER_SERVER_URL || 'http://localhost:8000';
 
 export const rtiRequestsService = {
-  async list(page: number, pageSize: number, search?: string) {
-    await sleep();
-    let allRequests = db.rtiRequests.map(r => {
-      return {
-        ...r,
-        referenceId: r.referenceId || r.id.split('-')[1]?.toUpperCase(),
-      } as RTIRequest;
+  async list(page: number, pageSize: number, search?: string, httpClient?: any) {
+    const response = await httpClient.request({
+      url: `${BASE_URL}/api/v1/rti_requests`,
+      params: { page, pageSize, query: search },
+      method: 'GET',
     });
-
-    if (search) {
-      const q = search.toLowerCase();
-      allRequests = allRequests.filter(r =>
-        r.title.toLowerCase().includes(q) ||
-        (r.receiver?.institution.name || '').toLowerCase().includes(q) ||
-        (r.receiver?.position.name || '').toLowerCase().includes(q)
-      );
-    }
-
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const data = allRequests.slice(start, end);
-
-    return {
-      data,
-      pagination: {
-        page,
-        pageSize,
-        totalItems: allRequests.length,
-        totalPages: Math.ceil(allRequests.length / pageSize)
-      }
-    };
+    return response.data;
   },
 
   async details(id: string): Promise<RTIRequest> {
@@ -127,10 +104,11 @@ export const rtiRequestsService = {
     return newRequest;
   },
 
-  async remove(id: string) {
-    await sleep();
-    db.rtiRequests = db.rtiRequests.filter(r => r.id !== id);
-    db.statusHistories = db.statusHistories.filter(h => h.rtiRequestId !== id);
+  async remove(id: string, httpClient?: any) {
+    await httpClient.request({
+      url: `${BASE_URL}/api/v1/rti_requests/${id}`,
+      method: 'DELETE',
+    });
   },
 
   async addHistory(payload: {
