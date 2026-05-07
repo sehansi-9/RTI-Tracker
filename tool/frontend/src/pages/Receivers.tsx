@@ -68,7 +68,8 @@ export function Receivers() {
     },
     params.receivers.page,
     params.receivers.pageSize,
-    params.receivers.search
+    params.receivers.search,
+    (p) => updateParams('receivers', { page: p })
   );
 
   const institutionsHook = useEntityData<Institution>(
@@ -81,7 +82,8 @@ export function Receivers() {
     },
     params.institutions.page,
     params.institutions.pageSize,
-    params.institutions.search
+    params.institutions.search,
+    (p) => updateParams('institutions', { page: p })
   );
 
   const positionsHook = useEntityData<Position>(
@@ -94,7 +96,8 @@ export function Receivers() {
     },
     params.positions.page,
     params.positions.pageSize,
-    params.positions.search
+    params.positions.search,
+    (p) => updateParams('positions', { page: p })
   );
 
   const isAnyMutating = receiversHook.isMutating || institutionsHook.isMutating || positionsHook.isMutating;
@@ -203,7 +206,7 @@ export function Receivers() {
 
     // Duplicate Validation (using existing data from hooks)
     const list = type === 'institution' ? institutionsHook.data : positionsHook.data;
-    const duplicate = list.find(i => i.name.toLowerCase() === name.toLowerCase() && i.id !== edit?.id);
+    const duplicate = list.find((i: Institution | Position) => i.name.toLowerCase() === name.toLowerCase() && i.id !== edit?.id);
 
     if (duplicate) {
       toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} "${name}" already exists.`);
@@ -244,12 +247,10 @@ export function Receivers() {
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     const { id, type } = deleteConfirm;
+    const hook = type === 'receivers' ? receiversHook : (type === 'institutions' ? institutionsHook : positionsHook);
     setDeleteConfirm(null);
-
     try {
-      if (type === 'receivers') await receiversHook.confirmDelete(id);
-      else if (type === 'institutions') await institutionsHook.confirmDelete(id);
-      else await positionsHook.confirmDelete(id);
+      await hook.confirmDelete(id);
       toast.success(`${type.slice(0, -1)} deleted`);
     } catch (e: any) {
       toast.error(e?.response?.data?.message || `Failed to delete ${type.slice(0, -1)}`);
@@ -298,11 +299,11 @@ export function Receivers() {
             loading={(tab === 'institutions' ? (institutionsHook.isLoading || institutionsHook.isFetching) : (positionsHook.isLoading || positionsHook.isFetching)) || isAnyMutating}
             onPageChange={p => updateParams(tab, { page: p })}
             onPageSizeChange={s => updateParams(tab, { pageSize: s, page: 1 })}
-            searchTerm={params[tab].search}
-            onSearch={s => updateParams(tab, { search: s, page: 1 })}
+            // searchTerm={params[tab].search}
+            // onSearch={s => updateParams(tab, { search: s, page: 1 })}
             columns={simpleEntityColumns}
             onEdit={item => openNameModal(tab === 'institutions' ? 'institution' : 'position', item)}
-            onDelete={item => setDeleteConfirm({ id: item.id, type: tab })}
+            onDelete={(item: Institution | Position) => setDeleteConfirm({ id: item.id, type: tab })}
           />
         )}
       </div>

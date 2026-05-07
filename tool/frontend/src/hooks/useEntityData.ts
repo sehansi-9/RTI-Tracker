@@ -11,7 +11,8 @@ export function useEntityData<T>(
   },
   page: number = 1,
   pageSize: number = 10,
-  search?: string
+  search?: string,
+  onPageChange?: (page: number) => void
 ) {
   const { http, isSignedIn } = useAsgardeo();
   const queryClient = useQueryClient();
@@ -45,7 +46,12 @@ export function useEntityData<T>(
       if (!serviceFns.delete) throw new Error(`Delete operation not supported for ${queryKey}`);
       return serviceFns.delete(id, http);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryKey] }),
+    onSuccess: () => {
+      if (query.data?.data?.length === 1 && page > 1 && onPageChange) {
+        onPageChange(page - 1);
+      }
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
+    },
     retry: 0,
   });
 
