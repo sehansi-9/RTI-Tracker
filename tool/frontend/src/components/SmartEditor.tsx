@@ -91,7 +91,7 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
   const applyFormat = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
-    triggerChange();
+    setTimeout(triggerChange, 0);
   };
 
   const triggerChange = () => {
@@ -197,9 +197,9 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
   };
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full min-h-0 ${className}`}>
       {showToolbar && (
-        <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50/50">
+        <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50/50 flex-shrink-0">
           <button
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyFormat('bold')}
@@ -249,7 +249,7 @@ export const SmartEditor = forwardRef<SmartEditorRef, SmartEditorProps>(({
         onInput={triggerChange}
         onDrop={onDrop}
         onDragOver={(e) => e.preventDefault()}
-        className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold [&_em]:italic [&_i]:italic"
+        className="flex-1 p-8 bg-white overflow-y-auto outline-none text-[16px] text-gray-800 leading-relaxed white-space-pre-wrap cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none empty:before:italic [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-gray-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-gray-800 [&_strong]:font-bold [&_em]:italic [&_i]:italic min-h-0"
         style={{ whiteSpace: 'pre-wrap' }}
         data-placeholder={placeholderText}
         data-gramm="false"

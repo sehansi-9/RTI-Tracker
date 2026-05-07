@@ -294,10 +294,10 @@ export function Templates() {
         )}
 
         {/* Smart Editor or Empty State */}
-        <div className="flex-1 min-h-[600px] lg:min-h-0 flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden relative">
+        <div className="flex-1 min-h-0 flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden relative">
           {(pagination.totalItems > 0 || newTemplates.length > 0) && selectedTemplate ? (
             <>
-              <div className="p-3 border-b border-gray-200 bg-white flex flex-wrap justify-between items-center gap-2 z-10">
+              <div className="p-3 border-b border-gray-200 bg-white flex flex-wrap justify-between items-center gap-2 z-10 flex-shrink-0">
                 <div className="flex items-center gap-2 flex-1 min-w-[150px]">
                   {isEditingName ? (
                     <input
@@ -339,7 +339,7 @@ export function Templates() {
                 ref={editorRef}
                 initialMarkdown={selectedTemplate.content}
                 placeholderText="Start typing your template here..."
-                className="flex-1"
+                className="flex-1 min-h-0"
               />
 
             </>
