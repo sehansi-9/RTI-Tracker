@@ -15,7 +15,7 @@ root.render(
     <AsgardeoProvider
         clientId={ASGARDEO_CLIENT_ID}
         baseUrl={ASGARDEO_BASE_URL}
-        scopes={["openid", "profile", "groups"]}
+        scopes={["openid", "profile", "groups", "offline_access"]}
     >
         <QueryClientProvider client={queryClient}>
             <App />
