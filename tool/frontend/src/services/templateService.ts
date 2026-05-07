@@ -64,8 +64,6 @@ export const templateService = {
   createRTITemplate: async (template: Omit<Template, 'id'>, httpClient?: AsgardeoContextProps['http']): Promise<Template> => {
     const formData = toFormData(template.title, template.description, template.content);
 
-    console.log(`[POST] Calling createRTITemplate for: ${template.title}`);
-
     if (httpClient) {
       const response = await httpClient.request({
         url: `${API_BASE_URL}/api/v1/rti_templates`,
@@ -83,8 +81,6 @@ export const templateService = {
    */
   updateRTITemplate: async (id: string, updates: Partial<Template>, httpClient?: AsgardeoContextProps['http']): Promise<Template> => {
     const formData = toFormData(updates.title, updates.description, updates.content);
-
-    console.log(`[PUT] Calling updateRTITemplate for ID: ${id}`);
 
     if (httpClient) {
       const response = await httpClient.request({
@@ -120,8 +116,6 @@ export const templateService = {
    * Delete an RTI template
    */
   deleteRTITemplate: async (id: string, httpClient?: AsgardeoContextProps['http']): Promise<void> => {
-
-    console.log(`[DELETE] Calling deleteRTITemplate for ID: ${id}`);
 
     if (httpClient) {
       await httpClient.request({
