@@ -11,7 +11,18 @@ import { useTemplates } from '../hooks/useTemplates'
 
 export function Templates() {
   const [currentPage, setCurrentPage] = useState(1);
-  const { data, isLoading, isFetching, createTemplate, updateTemplate, deleteTemplate: removeTemplate, fetchTemplateContent } = useTemplates(currentPage, 10);
+  const { 
+    data, 
+    isLoading, 
+    isFetching, 
+    createTemplate, 
+    updateTemplate, 
+    deleteTemplate: removeTemplate, 
+    fetchTemplateContent,
+    isCreating,
+    isUpdating,
+    isDeleting
+  } = useTemplates(currentPage, 10);
 
   const [newTemplates, setNewTemplates] = useState<Template[]>([]);
   const [contentCache, setContentCache] = useState<Record<string, string>>({});
@@ -105,10 +116,9 @@ export function Templates() {
   const saveTemplate = async () => {
     if (!editorRef.current || !selectedTemplate) return;
     const markdown = editorRef.current.getMarkdown();
-
     const isNew = selectedTemplate.id.startsWith('new-');
 
-    try {
+    const savePromise = (async () => {
       let savedTemplate: Template;
 
       if (isNew) {
@@ -120,13 +130,23 @@ export function Templates() {
           createdAt: new Date(),
           updatedAt: new Date()
         });
-        setNewTemplates(prev => prev.filter(t => t.id !== selectedTemplate.id));
       } else {
         savedTemplate = await updateTemplate({
           id: selectedTemplate.id,
           updates: { title: editedName, content: markdown }
         });
       }
+      return savedTemplate;
+    })();
+
+    toast.promise(savePromise, {
+      loading: isNew ? 'Creating template...' : 'Saving template...',
+      success: isNew ? 'New template created!' : 'Template updated!',
+      error: 'Failed to save template',
+    });
+
+    try {
+      const savedTemplate = await savePromise;
 
       // Use the content we just saved if the backend didn't return it for some reason
       if (savedTemplate.content === undefined) {
@@ -138,15 +158,12 @@ export function Templates() {
 
       if (isNew) {
         setNewTemplates(prev => prev.filter(t => t.id !== selectedTemplate.id));
-        toast.success('New template created!');
-      } else {
-        toast.success('Template updated!');
       }
 
       setSelectedTemplate(savedTemplate);
       setIsEditingName(false);
     } catch (error) {
-      toast.error('Failed to save template');
+      console.error('Save error:', error);
     }
   };
 
@@ -162,25 +179,37 @@ export function Templates() {
     const isNew = idToDelete.startsWith('new-');
     setTemplateToDelete(null);
 
-    try {
+    const deletePromise = (async () => {
       if (!isNew) {
         await removeTemplate(idToDelete);
       }
+    })();
 
+    if (!isNew) {
+      toast.promise(deletePromise, {
+        loading: 'Deleting template...',
+        success: 'Template deleted',
+        error: 'Failed to delete template',
+      });
+    } else {
       toast.success('Template deleted');
+    }
 
-      const isDeletingSelected = selectedTemplate?.id === templateToDelete.id;
+    try {
+      await deletePromise;
+
+      const isDeletingSelected = selectedTemplate?.id === idToDelete;
       if (isDeletingSelected) setSelectedTemplate(null);
 
       // Cleanup local state
-      setNewTemplates(prev => prev.filter(t => t.id !== templateToDelete.id));
+      setNewTemplates(prev => prev.filter(t => t.id !== idToDelete));
       setContentCache(prev => {
         const next = { ...prev };
-        delete next[templateToDelete.id];
+        delete next[idToDelete];
         return next;
       });
     } catch (error) {
-      toast.error('Failed to delete template');
+      console.error('Delete error:', error);
     }
   };
 
@@ -233,13 +262,14 @@ export function Templates() {
                       {template.title}
                     </button>
                     <button
+                      disabled={isDeleting}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteTemplate(template.id, template.title);
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ${isDeleting ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className={`w-4 h-4 ${isDeleting && templateToDelete?.id === template.id ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
                 ))
@@ -294,7 +324,13 @@ export function Templates() {
                     </span>
                   )}
                 </div>
-                <Button size="sm" variant="primary" onClick={saveTemplate} className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                <Button 
+                  size="sm" 
+                  variant="primary" 
+                  onClick={saveTemplate} 
+                  loading={isCreating || isUpdating}
+                  className="flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+                >
                   <Save className="w-4 h-4" /> Save Template
                 </Button>
               </div>
@@ -369,6 +405,7 @@ export function Templates() {
         onCancel={() => setTemplateToDelete(null)}
         onConfirm={confirmDelete}
         confirmText="Delete Template"
+        loading={isDeleting}
       />
     </div>
   );

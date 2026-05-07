@@ -68,6 +68,9 @@ export const useTemplates = (page: number = 1, pageSize: number = 10) => {
     createTemplate: createTemplateMutation.mutateAsync,
     updateTemplate: updateTemplateMutation.mutateAsync,
     deleteTemplate: deleteTemplateMutation.mutateAsync,
+    isCreating: createTemplateMutation.isPending,
+    isUpdating: updateTemplateMutation.isPending,
+    isDeleting: deleteTemplateMutation.isPending,
     fetchTemplateContent,
     fetchTemplateById,
   };
