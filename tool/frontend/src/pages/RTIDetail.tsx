@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, FileText, CheckCircle, Upload, Clock, User, Building2, Mail, X, Plus, Edit2, AlertTriangle } from 'lucide-react';
 import { useRTIRequestDetail } from '../hooks/useRTIRequest';
@@ -25,9 +25,11 @@ export function RTIDetail() {
   const updateHistoryMutation = useUpdateRtiRequestHistory();
   const deleteHistoryMutation = useDeleteRtiRequestHistory();
 
-  const history = (historyResponse?.data || []).sort(
-    (a, b) => new Date(b.entryTime).getTime() - new Date(a.entryTime).getTime()
-  );
+  const history = useMemo(() => {
+    return [...(historyResponse?.data || [])].sort(
+      (a, b) => new Date(b.entryTime).getTime() - new Date(a.entryTime).getTime()
+    );
+  }, [historyResponse?.data]);
 
   // Event Modal State
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
